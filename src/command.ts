@@ -7,8 +7,10 @@ import {
 	configPath,
 	loadConfigFromPath,
 	setReviewerModel,
+	setReviewScope,
 	type ConfigResult,
 } from './config.ts';
+import {openConfigMenu} from './config-menu.ts';
 import {openModelPicker} from './model-picker.ts';
 import {errorMessage} from './shared/guards.ts';
 import {normalizeToolCall} from './review/normalize-tool-call.ts';
@@ -16,7 +18,7 @@ import {formatCost, formatOutcome, performReview} from './review/run-review.ts';
 import type {RuntimeState} from './runtime-state.ts';
 import {agentReviewStateEntryType, makeReviewStateEntryData} from './session-state.ts';
 
-const usage = 'Usage: /agent-review status | /agent-review on | /agent-review off | /agent-review model [current|provider/model] | /agent-review test <tool-name> <json-args>';
+const usage = 'Usage: /agent-review status | on | off | config | input on|off | output on|off | model [current|provider/model] | test <tool-name> <json-args>';
 
 function handleToggle(pi: ExtensionAPI, state: RuntimeState, context: ExtensionCommandContext, isEnabled: boolean): void {
 	state.reviewState = makeReviewStateEntryData(isEnabled);
@@ -103,6 +105,41 @@ async function handleTest(context: ExtensionCommandContext, config: ConfigResult
 	context.ui.notify(formatOutcome('Approved', toolName, review.value.rationale, review.cost), 'info');
 }
 
+async function applyScope(context: ExtensionCommandContext, scope: {reviewInput?: boolean; reviewOutput?: boolean}): Promise<void> {
+	const result = await setReviewScope(configPath, scope);
+	if (result.ok) {
+		context.ui.notify(`Review inputs: ${String(result.value.review.reviewInput)}, review outputs: ${String(result.value.review.reviewOutput)}.`, 'info');
+	} else {
+		context.ui.notify(`Agent Review: ${result.error}`, 'error');
+	}
+}
+
+async function handleScope(context: ExtensionCommandContext, stage: 'reviewInput' | 'reviewOutput', argument: string): Promise<void> {
+	if (argument !== 'on' && argument !== 'off') {
+		context.ui.notify(`Usage: /agent-review ${stage === 'reviewInput' ? 'input' : 'output'} on|off`, 'error');
+		return;
+	}
+
+	await applyScope(context, {[stage]: argument === 'on'});
+}
+
+async function handleConfig(context: ExtensionCommandContext, config: ConfigResult): Promise<void> {
+	if (!config.ok) {
+		context.ui.notify(`Agent Review config error: ${config.error}`, 'error');
+		return;
+	}
+
+	if (context.mode !== 'tui') {
+		context.ui.notify('Open /agent-review config in interactive mode, or use /agent-review input|output on|off.', 'error');
+		return;
+	}
+
+	const scope = await openConfigMenu(context, config.value);
+	if (scope !== undefined) {
+		await applyScope(context, scope);
+	}
+}
+
 function renderStatus(state: RuntimeState, config: ConfigResult): string {
 	const snapshot = state.tracker.snapshot();
 	const statusLines = [
@@ -114,6 +151,8 @@ function renderStatus(state: RuntimeState, config: ConfigResult): string {
 	if (config.ok) {
 		statusLines.push(
 			`Enabled for session: ${String(state.reviewState.isReviewEnabled)}`,
+			`Review inputs: ${String(config.value.review.reviewInput)}`,
+			`Review outputs: ${String(config.value.review.reviewOutput)}`,
 			`Reviewer: ${config.value.reviewer.provider}/${config.value.reviewer.model}`,
 		);
 	} else {
@@ -175,6 +214,21 @@ export function createAgentReviewCommand(pi: ExtensionAPI, state: RuntimeState):
 			}
 
 			const config = await loadConfigFromPath(configPath);
+
+			if (trimmed === 'input' || trimmed.startsWith('input ')) {
+				await handleScope(context, 'reviewInput', trimmed.slice('input'.length).trim());
+				return;
+			}
+
+			if (trimmed === 'output' || trimmed.startsWith('output ')) {
+				await handleScope(context, 'reviewOutput', trimmed.slice('output'.length).trim());
+				return;
+			}
+
+			if (trimmed === 'config') {
+				await handleConfig(context, config);
+				return;
+			}
 
 			if (trimmed === 'model' || trimmed.startsWith('model ')) {
 				await handleModel(context, config, trimmed.slice('model'.length).trim());

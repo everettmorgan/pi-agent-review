@@ -55,7 +55,7 @@ describe('createToolResultHandler', () => {
 	beforeEach(() => {
 		reviewOutputMock.mockReset();
 		loadConfigMock.mockReset();
-		loadConfigMock.mockResolvedValue({ok: true, value: {reviewer: {}, review: {}}});
+		loadConfigMock.mockResolvedValue({ok: true, value: {reviewer: {}, review: {reviewOutput: true}}});
 	});
 
 	it('passes clean output through, records the assessment, and logs it', async () => {
@@ -100,6 +100,16 @@ describe('createToolResultHandler', () => {
 		expect(result?.content[0].text).toContain('withheld');
 		expect(abort).not.toHaveBeenCalled();
 		expect(lastLog(appendEntry)).toContain('could not inspect');
+	});
+
+	it('skips review when output review is turned off in config', async () => {
+		loadConfigMock.mockResolvedValue({ok: true, value: {reviewer: {}, review: {reviewOutput: false}}});
+		const state = createRuntimeState();
+
+		const result = await createToolResultHandler(makePi().pi, state)(makeEvent('anything'), makeContext().context);
+
+		expect(result).toBeUndefined();
+		expect(reviewOutputMock).not.toHaveBeenCalled();
 	});
 
 	it('skips review when the session has review disabled', async () => {

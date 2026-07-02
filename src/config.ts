@@ -9,6 +9,10 @@ import path from 'node:path';
 import {errorMessage} from './shared/guards.ts';
 
 export type ReviewConfig = {
+	// Review proposed tool calls before they run (the request stage).
+	reviewInput: boolean;
+	// Review tool output for sensitive data after a call runs (the output stage).
+	reviewOutput: boolean;
 	timeoutMs: number;
 	denyOnReviewerFailure: true;
 	consecutiveDenialLimit: number;
@@ -32,6 +36,8 @@ export const configPath = path.join(homedir(), '.pi', 'agent', 'agent-review', '
 
 export const defaultConfig: AgentReviewConfig = {
 	review: {
+		reviewInput: true,
+		reviewOutput: true,
 		timeoutMs: 30_000,
 		denyOnReviewerFailure: true,
 		consecutiveDenialLimit: 3,
@@ -65,6 +71,8 @@ function mergeConfig(input: PartialConfig): AgentReviewConfig {
 	const reviewer = input.reviewer ?? {};
 	return {
 		review: {
+			reviewInput: review.reviewInput ?? defaultConfig.review.reviewInput,
+			reviewOutput: review.reviewOutput ?? defaultConfig.review.reviewOutput,
 			timeoutMs: review.timeoutMs ?? defaultConfig.review.timeoutMs,
 			denyOnReviewerFailure: true,
 			consecutiveDenialLimit: review.consecutiveDenialLimit ?? defaultConfig.review.consecutiveDenialLimit,
@@ -82,9 +90,15 @@ function validatePositiveInteger(value: number, fieldPath: string): string | und
 	return Number.isSafeInteger(value) && value > 0 ? undefined : `${fieldPath} must be a positive integer`;
 }
 
+function validateBoolean(value: boolean, fieldPath: string): string | undefined {
+	return typeof value === 'boolean' ? undefined : `${fieldPath} must be a boolean`;
+}
+
 function validateConfig(config: AgentReviewConfig): string | undefined {
 	return (
-		validatePositiveInteger(config.review.timeoutMs, 'review.timeoutMs')
+		validateBoolean(config.review.reviewInput, 'review.reviewInput')
+		?? validateBoolean(config.review.reviewOutput, 'review.reviewOutput')
+		?? validatePositiveInteger(config.review.timeoutMs, 'review.timeoutMs')
 		?? validatePositiveInteger(config.review.consecutiveDenialLimit, 'review.consecutiveDenialLimit')
 		?? validatePositiveInteger(config.review.rollingDenialLimit, 'review.rollingDenialLimit')
 	);
@@ -131,17 +145,37 @@ export async function setReviewerModel(filePath: string, spec: string): Promise<
 		}
 	}
 
-	const current = await loadConfigFromPath(filePath);
-	const base = current.ok ? current.value : defaultConfig;
-	const next: AgentReviewConfig = {
-		...base,
-		reviewer: {...base.reviewer, provider, model},
-	};
+	const base = await loadConfig(filePath);
+	return writeConfig(filePath, {...base, reviewer: {...base.reviewer, provider, model}});
+}
 
+export type ReviewScope = {
+	reviewInput?: boolean;
+	reviewOutput?: boolean;
+};
+
+export async function setReviewScope(filePath: string, scope: ReviewScope): Promise<ConfigResult> {
+	const base = await loadConfig(filePath);
+	return writeConfig(filePath, {
+		...base,
+		review: {
+			...base.review,
+			reviewInput: scope.reviewInput ?? base.review.reviewInput,
+			reviewOutput: scope.reviewOutput ?? base.review.reviewOutput,
+		},
+	});
+}
+
+async function loadConfig(filePath: string): Promise<AgentReviewConfig> {
+	const current = await loadConfigFromPath(filePath);
+	return current.ok ? current.value : defaultConfig;
+}
+
+async function writeConfig(filePath: string, config: AgentReviewConfig): Promise<ConfigResult> {
 	try {
 		await mkdir(path.dirname(filePath), {recursive: true});
-		await writeFile(filePath, `${JSON.stringify(next, null, 2)}\n`, 'utf8');
-		return {ok: true, value: next};
+		await writeFile(filePath, `${JSON.stringify(config, null, 2)}\n`, 'utf8');
+		return {ok: true, value: config};
 	} catch (error: unknown) {
 		return {ok: false, error: `Failed to write config at ${filePath}: ${errorMessage(error)}`};
 	}

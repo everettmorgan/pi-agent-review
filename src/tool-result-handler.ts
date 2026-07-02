@@ -35,6 +35,10 @@ export function createToolResultHandler(pi: ExtensionAPI, state: RuntimeState) {
 			return withheldResult(`configuration is invalid (${config.error})`);
 		}
 
+		if (!config.value.review.reviewOutput) {
+			return undefined;
+		}
+
 		const review = await reviewOutput(context, config.value, event.toolName, output);
 		state.sessionCost += review.cost;
 

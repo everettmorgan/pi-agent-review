@@ -6,6 +6,7 @@ import {
 	defaultConfig,
 	loadConfigFromPath,
 	setReviewerModel,
+	setReviewScope,
 } from '../src/config.ts';
 
 describe('loadConfigFromPath', () => {
@@ -94,5 +95,28 @@ describe('loadConfigFromPath', () => {
 
 		const file = JSON.parse(await readFile(filePath, 'utf8')) as {review: Record<string, unknown>};
 		expect(file.review.isReviewEnabled).toBeUndefined();
+	});
+});
+
+describe('setReviewScope', () => {
+	it('defaults both review stages to enabled', () => {
+		expect(defaultConfig.review.reviewInput).toBe(true);
+		expect(defaultConfig.review.reviewOutput).toBe(true);
+	});
+
+	it('persists a single stage toggle without changing the other', async () => {
+		const directory = await mkdtemp(path.join(tmpdir(), 'agent-review-config-'));
+		const filePath = path.join(directory, 'config.json');
+
+		const result = await setReviewScope(filePath, {reviewOutput: false});
+
+		expect(result.ok).toBe(true);
+		if (result.ok) {
+			expect(result.value.review.reviewInput).toBe(true);
+			expect(result.value.review.reviewOutput).toBe(false);
+		}
+
+		const reloaded = await loadConfigFromPath(filePath);
+		expect(reloaded.ok && reloaded.value.review.reviewOutput).toBe(false);
 	});
 });

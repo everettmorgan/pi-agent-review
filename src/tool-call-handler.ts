@@ -41,6 +41,11 @@ export function createToolCallHandler(pi: ExtensionAPI, state: RuntimeState, led
 			return {block: true, reason: formatReviewerFailureReason(configResult.error)};
 		}
 
+		if (!configResult.value.review.reviewInput) {
+			state.lastDecision = undefined;
+			return undefined;
+		}
+
 		const call = {toolName: event.toolName, input: event.input, cwd: context.cwd};
 
 		const gateResult = classifyToolCall(call);
