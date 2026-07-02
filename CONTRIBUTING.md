@@ -29,5 +29,14 @@ npm test            # vitest
 
 ## Releases
 
-Tag `vX.Y.Z` on `main` and push the tag; publish a GitHub release. Users install
-a tag with `pi install git:github.com/everettmorgan/pi-agent-review@vX.Y.Z`.
+Bump `version` in `package.json`, tag `vX.Y.Z` on `main`, push the tag, and
+publish a GitHub release. Publishing a release runs `.github/workflows/publish.yml`,
+which publishes to npm when the `NPM_TOKEN` repository secret is set. The npm
+package carries the `pi-package` keyword, so it also appears on pi.dev/packages.
+
+Install a release with either:
+
+```bash
+pi install npm:pi-agent-review@X.Y.Z
+pi install git:github.com/everettmorgan/pi-agent-review@vX.Y.Z
+```
