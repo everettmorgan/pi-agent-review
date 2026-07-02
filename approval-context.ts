@@ -1,4 +1,4 @@
-import { neutralizeFence, truncateText } from './normalize-tool-call.ts';
+import {neutralizeFence, truncateText} from './normalize-tool-call.ts';
 
 export type TrustedIntentContext = {
 	recentUserMessages: string[];
@@ -71,7 +71,7 @@ function cleanTrustedText(text: string, maxChars: number): string {
 }
 
 export function buildTrustedIntentContext(branch: unknown[], options: Partial<TrustedIntentOptions> = {}): TrustedIntentContext {
-	const resolvedOptions = { ...defaultOptions, ...options };
+	const resolvedOptions = {...defaultOptions, ...options};
 	const recentUserMessages: string[] = [];
 	const structuredUserAnswers: string[] = [];
 
@@ -96,7 +96,7 @@ export function buildTrustedIntentContext(branch: unknown[], options: Partial<Tr
 		}
 	}
 
-	return { recentUserMessages, structuredUserAnswers };
+	return {recentUserMessages, structuredUserAnswers};
 }
 
 export function formatTrustedIntentContext(context: TrustedIntentContext): string {
