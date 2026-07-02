@@ -87,17 +87,18 @@ describe('createToolCallHandler', () => {
 		expect(performReviewMock).not.toHaveBeenCalled();
 	});
 
-	it('allows a reviewer-approved call and records the decision', async () => {
+	it('allows a reviewer-approved call, records the decision, and logs it', async () => {
 		performReviewMock.mockResolvedValue({ok: true, value: {decision: 'approve', rationale: 'safe'}, cost: 0.01});
 		const state = createRuntimeState();
-		const {context, notify} = makeContext();
-		const handler = createToolCallHandler(makePi().pi, state, new ApprovalLedger());
+		const {pi, appendEntry} = makePi();
+		const handler = createToolCallHandler(pi, state, new ApprovalLedger());
 
-		const result = await handler(makeEvent(), context);
+		const result = await handler(makeEvent(), makeContext().context);
 
 		expect(result).toBeUndefined();
 		expect(state.lastDecision).toMatchObject({decision: 'approve', toolName: 'bash'});
-		expect(notify).toHaveBeenCalledWith(expect.stringContaining('Approved: bash'), 'info');
+		const logged = appendEntry.mock.calls.find(([type]) => type === 'agent-review-log');
+		expect((logged?.[1] as {message: string} | undefined)?.message).toContain('Approved: bash');
 	});
 
 	it('blocks a reviewer-denied call with request_user_approval guidance', async () => {
@@ -154,7 +155,7 @@ describe('createToolCallHandler', () => {
 
 		// Approval survives so the agent can retry without re-prompting the user.
 		expect(isPending(ledger, argsHash)).toBe(true);
-		expect(appendEntry).not.toHaveBeenCalled();
+		expect(appendEntry).not.toHaveBeenCalledWith('agent-review-consumption', expect.anything());
 	});
 
 	it('does not burn a one-shot approval when the reviewer denies', async () => {

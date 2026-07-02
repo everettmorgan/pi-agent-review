@@ -15,6 +15,7 @@ import {configPath, loadConfigFromPath} from './config.ts';
 import {normalizeToolCall} from './review/normalize-tool-call.ts';
 import {formatDenialReason, formatReviewerFailureReason} from './review/review-decision.ts';
 import {formatCost, formatOutcome, performReview} from './review/run-review.ts';
+import {appendReviewLog} from './review-log.ts';
 import type {RuntimeState} from './runtime-state.ts';
 
 // Record a denial against the circuit breaker and build the block result,
@@ -66,7 +67,7 @@ export function createToolCallHandler(pi: ExtensionAPI, state: RuntimeState, led
 			state.lastDecision = {
 				toolName: event.toolName, decision: 'failure', rationale: review.error, cost: review.cost,
 			};
-			context.ui.notify(formatOutcome('Failed', event.toolName, review.error, review.cost), 'error');
+			appendReviewLog(pi, formatOutcome('Failed', event.toolName, review.error, review.cost));
 			return recordDenialAndBlock(state, formatReviewerFailureReason(review.error), review.cost);
 		}
 
@@ -78,7 +79,7 @@ export function createToolCallHandler(pi: ExtensionAPI, state: RuntimeState, led
 				cost: review.cost,
 				...((review.value.saferAlternative !== undefined) && {saferAlternative: review.value.saferAlternative}),
 			};
-			context.ui.notify(formatOutcome('Denied', event.toolName, review.value.rationale, review.cost, review.value.saferAlternative), 'warning');
+			appendReviewLog(pi, formatOutcome('Denied', event.toolName, review.value.rationale, review.cost, review.value.saferAlternative));
 			return recordDenialAndBlock(state, formatDenialReason(review.value), review.cost);
 		}
 
@@ -91,7 +92,7 @@ export function createToolCallHandler(pi: ExtensionAPI, state: RuntimeState, led
 		state.lastDecision = {
 			toolName: event.toolName, decision: 'approve', rationale: review.value.rationale, cost: review.cost,
 		};
-		context.ui.notify(formatOutcome('Approved', event.toolName, review.value.rationale, review.cost), 'info');
+		appendReviewLog(pi, formatOutcome('Approved', event.toolName, review.value.rationale, review.cost));
 		return undefined;
 	};
 }

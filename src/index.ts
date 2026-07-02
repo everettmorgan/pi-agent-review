@@ -5,6 +5,7 @@ import {createAgentReviewCommand} from './command.ts';
 import {configPath, defaultConfig, loadConfigFromPath} from './config.ts';
 import {DenialTracker} from './denial-tracker.ts';
 import {createRuntimeState} from './runtime-state.ts';
+import {registerReviewLog} from './review-log.ts';
 import {getReviewStateFromBranch} from './session-state.ts';
 import {createToolCallHandler} from './tool-call-handler.ts';
 import {createToolResultHandler} from './tool-result-handler.ts';
@@ -34,9 +35,10 @@ export default function agentReview(pi: ExtensionAPI): void {
 		state.tracker = new DenialTracker((config.ok ? config.value : defaultConfig).review);
 	});
 
+	registerReviewLog(pi);
 	registerApprovalTool(pi, ledger);
 	pi.on('tool_call', createToolCallHandler(pi, state, ledger));
-	pi.on('tool_result', createToolResultHandler(state));
+	pi.on('tool_result', createToolResultHandler(pi, state));
 
 	pi.registerCommand('agent-review', createAgentReviewCommand(pi, state));
 }

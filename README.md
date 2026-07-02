@@ -41,7 +41,7 @@ When the reviewer denies a call the agent believes the user wants, the agent can
 
 Every tool result is also reviewed for sensitive data (secrets, credentials, keys, tokens) by the reviewer model. A confirmed leak is blocked (the output is withheld from the model and transcript), flagged to the user, and the turn is stopped. If the output reviewer cannot run, the unreviewed output is withheld (fail-closed).
 
-The reviewer surfaces its assessment for both stages: each request review notifies approve/deny/failure with the reviewer's reasoning, and each output review notifies cleared/blocked with its reasoning. `/agent-review status` shows the last request review and the last output review.
+The reviewer surfaces its assessment for both stages as append-only log entries in the chat history (not transient notifications, which overwrite one another when several tool calls run in a turn). Each request review logs approve/deny/failure with the reviewer's reasoning, and each output review logs cleared/blocked/withheld with its reasoning. These log entries are shown in the transcript but are not sent to the model. `/agent-review status` also shows the last request review and the last output review.
 
 `/agent-review off` disables review for the current session only and records that choice in the session branch. `/agent-review on` re-enables review for the current session. New sessions default back to enabled unless they contain their own Agent Review session state.
 

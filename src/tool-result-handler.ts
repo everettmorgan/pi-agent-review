@@ -1,4 +1,5 @@
 import type {
+	ExtensionAPI,
 	ExtensionContext,
 	ToolResultEvent,
 } from '@earendil-works/pi-coding-agent';
@@ -6,17 +7,18 @@ import {approvalToolName} from './approval/approval-tool.ts';
 import {configPath, loadConfigFromPath} from './config.ts';
 import {reviewOutput} from './review/output-reviewer.ts';
 import {formatCost} from './review/run-review.ts';
+import {appendReviewLog} from './review-log.ts';
 import type {RuntimeState} from './runtime-state.ts';
 import {joinTextParts} from './shared/content.ts';
 
 // After a tool runs, inspect its output for sensitive data. A confirmed leak is
-// blocked (the content is withheld from the model and transcript), flagged to
-// the user, and the turn is aborted. Because the tool already executed, we fail
-// closed the same way the call path does: if the reviewer itself cannot run, the
-// unreviewed output is withheld rather than passed through.
+// blocked (the content is withheld from the model and transcript), logged, and
+// the turn is aborted. Because the tool already executed, we fail closed the
+// same way the call path does: if the reviewer itself cannot run, the unreviewed
+// output is withheld rather than passed through.
 type WithheldResult = {isError: true; content: Array<{type: 'text'; text: string}>};
 
-export function createToolResultHandler(state: RuntimeState) {
+export function createToolResultHandler(pi: ExtensionAPI, state: RuntimeState) {
 	return async (event: ToolResultEvent, context: ExtensionContext): Promise<WithheldResult | undefined> => {
 		if (!state.reviewState.isReviewEnabled || event.toolName === approvalToolName || event.isError) {
 			return undefined;
@@ -29,6 +31,7 @@ export function createToolResultHandler(state: RuntimeState) {
 
 		const config = await loadConfigFromPath(configPath);
 		if (!config.ok) {
+			appendReviewLog(pi, `Output review — withheld ${event.toolName}: configuration is invalid (${config.error}).`);
 			return withheldResult(`configuration is invalid (${config.error})`);
 		}
 
@@ -36,7 +39,7 @@ export function createToolResultHandler(state: RuntimeState) {
 		state.sessionCost += review.cost;
 
 		if (!review.ok) {
-			context.ui.notify(`Agent Review could not inspect ${event.toolName} output: ${review.error}`, 'error');
+			appendReviewLog(pi, `Output review — withheld ${event.toolName}: could not inspect (${review.error}). Cost: ${formatCost(review.cost)}`);
 			return withheldResult(`it could not be inspected (${review.error})`);
 		}
 
@@ -51,7 +54,7 @@ export function createToolResultHandler(state: RuntimeState) {
 		const labels = review.value.categories.length > 0 ? ` [${review.value.categories.join(', ')}]` : '';
 
 		if (review.value.containsSensitive) {
-			context.ui.notify(`Output review — blocked ${event.toolName}: sensitive data detected${labels}: ${review.value.rationale} Cost: ${formatCost(review.cost)}`, 'error');
+			appendReviewLog(pi, `Output review — blocked ${event.toolName}: sensitive data detected${labels}: ${review.value.rationale} Cost: ${formatCost(review.cost)}`);
 			context.abort();
 			return {
 				isError: true,
@@ -59,7 +62,7 @@ export function createToolResultHandler(state: RuntimeState) {
 			};
 		}
 
-		context.ui.notify(`Output review — cleared ${event.toolName}: ${review.value.rationale} Cost: ${formatCost(review.cost)}`, 'info');
+		appendReviewLog(pi, `Output review — cleared ${event.toolName}: ${review.value.rationale} Cost: ${formatCost(review.cost)}`);
 		return undefined;
 	};
 }
