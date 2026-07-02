@@ -140,7 +140,7 @@ export async function openModelPicker(context: UiContext, config: AgentReviewCon
 					selectedIndex = selectedIndex === filteredItems.length - 1 ? 0 : selectedIndex + 1;
 					renderModelList(listContainer, filteredItems, selectedIndex, currentSpec, theme);
 				} else if (keybindings.matches(data, 'tui.select.confirm')) {
-					const selected = filteredItems[selectedIndex];
+					const selected = filteredItems.at(selectedIndex);
 					if (selected === undefined) {
 						return;
 					}

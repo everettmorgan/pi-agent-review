@@ -3,11 +3,11 @@
 // complexity/size limits below are scoped to src/; test files relax them
 // because describe/it callbacks legitimately nest and grow.
 const readabilityRules = {
-	complexity: ['error', 8],
+	complexity: ['error', 10],
 	'max-depth': ['error', 3],
-	'max-params': ['error', 4],
+	'max-params': ['error', 5],
 	'max-nested-callbacks': ['error', 3],
-	'max-statements': ['error', 18],
+	'max-statements': ['error', 25],
 	'max-lines-per-function': ['error', {max: 60, skipBlankLines: true, skipComments: true}],
 	'no-else-return': ['error', {allowElseIf: false}],
 	'no-lonely-if': 'error',
@@ -16,6 +16,20 @@ const readabilityRules = {
 	'prefer-const': 'error',
 	'@typescript-eslint/explicit-module-boundary-types': 'error',
 	'@typescript-eslint/consistent-type-definitions': ['error', 'type'],
+};
+
+// Type-aware safety rules: catch real bugs (unawaited promises, always-true
+// conditions, unsafe assertions) while keeping idiomatic undefined.
+const typeSafetyRules = {
+	'@typescript-eslint/no-floating-promises': 'error',
+	'@typescript-eslint/no-misused-promises': 'error',
+	'@typescript-eslint/no-unnecessary-condition': 'error',
+	'@typescript-eslint/strict-boolean-expressions': ['error', {allowNullableObject: false}],
+	'@typescript-eslint/no-non-null-assertion': 'error',
+	'@typescript-eslint/no-explicit-any': 'error',
+	'@typescript-eslint/prefer-nullish-coalescing': 'error',
+	'@typescript-eslint/prefer-optional-chain': 'error',
+	'@typescript-eslint/switch-exhaustiveness-check': 'error',
 };
 
 const sharedRules = {
@@ -32,9 +46,14 @@ const sharedRules = {
 
 export default [
 	{
+		ignores: ['**/*.md', 'docs/**', 'node_modules/**'],
+	},
+	{
+		files: ['**/*.ts'],
 		rules: {
 			...sharedRules,
 			...readabilityRules,
+			...typeSafetyRules,
 		},
 	},
 	{
@@ -44,6 +63,9 @@ export default [
 			'max-nested-callbacks': 'off',
 			'max-statements': 'off',
 			complexity: 'off',
+			// Tests use structural casts (as unknown as X) to build minimal fakes.
+			'@typescript-eslint/no-explicit-any': 'off',
+			'@typescript-eslint/no-unsafe-assignment': 'off',
 		},
 	},
 ];

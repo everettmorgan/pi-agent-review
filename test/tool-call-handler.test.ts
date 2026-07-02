@@ -42,7 +42,9 @@ function makeEvent(toolName = 'bash', input?: unknown): ToolCallEvent {
 }
 
 function grant(ledger: ApprovalLedger, event: ToolCallEvent, nonce = 'test-nonce'): void {
-	ledger.record({nonce, toolName: event.toolName, approvedAction: `Tool: ${event.toolName}`, expiresAt: Date.now() + approvalTtlMs});
+	ledger.record({
+		nonce, toolName: event.toolName, approvedAction: `Tool: ${event.toolName}`, expiresAt: Date.now() + approvalTtlMs,
+	});
 }
 
 function isPending(ledger: ApprovalLedger, toolName: string): boolean {

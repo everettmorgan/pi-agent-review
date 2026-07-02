@@ -202,50 +202,50 @@ function renderStatus(state: RuntimeState, config: ConfigResult): string {
 	return statusLines.join('\n');
 }
 
+// Subcommands that don't need the config file. Returns whether one matched.
+async function runSessionSubcommand(pi: ExtensionAPI, state: RuntimeState, context: ExtensionCommandContext, trimmed: string): Promise<boolean> {
+	if (trimmed === 'on' || trimmed === 'off') {
+		handleToggle(pi, state, context, trimmed === 'on');
+		return true;
+	}
+
+	if (trimmed === 'input' || trimmed.startsWith('input ')) {
+		await handleScope(context, 'reviewInput', trimmed.slice('input'.length).trim());
+		return true;
+	}
+
+	if (trimmed === 'output' || trimmed.startsWith('output ')) {
+		await handleScope(context, 'reviewOutput', trimmed.slice('output'.length).trim());
+		return true;
+	}
+
+	return false;
+}
+
+async function runConfigSubcommand(state: RuntimeState, context: ExtensionCommandContext, trimmed: string): Promise<void> {
+	const config = await loadConfigFromPath(configPath);
+
+	if (trimmed === 'config') {
+		await handleConfig(context, config);
+	} else if (trimmed === 'model' || trimmed.startsWith('model ')) {
+		await handleModel(context, config, trimmed.slice('model'.length).trim());
+	} else if (trimmed.startsWith('test ')) {
+		await handleTest(context, config, trimmed.slice('test '.length));
+	} else if (trimmed === '' || trimmed === 'status') {
+		context.ui.notify(renderStatus(state, config), config.ok ? 'info' : 'error');
+	} else {
+		context.ui.notify(usage, 'error');
+	}
+}
+
 export function createAgentReviewCommand(pi: ExtensionAPI, state: RuntimeState): Omit<RegisteredCommand, 'name' | 'sourceInfo'> {
 	return {
 		description: 'Show Agent Review status or test a tool call review.',
 		async handler(commandArguments, context) {
 			const trimmed = commandArguments.trim();
-
-			if (trimmed === 'on' || trimmed === 'off') {
-				handleToggle(pi, state, context, trimmed === 'on');
-				return;
+			if (!(await runSessionSubcommand(pi, state, context, trimmed))) {
+				await runConfigSubcommand(state, context, trimmed);
 			}
-
-			const config = await loadConfigFromPath(configPath);
-
-			if (trimmed === 'input' || trimmed.startsWith('input ')) {
-				await handleScope(context, 'reviewInput', trimmed.slice('input'.length).trim());
-				return;
-			}
-
-			if (trimmed === 'output' || trimmed.startsWith('output ')) {
-				await handleScope(context, 'reviewOutput', trimmed.slice('output'.length).trim());
-				return;
-			}
-
-			if (trimmed === 'config') {
-				await handleConfig(context, config);
-				return;
-			}
-
-			if (trimmed === 'model' || trimmed.startsWith('model ')) {
-				await handleModel(context, config, trimmed.slice('model'.length).trim());
-				return;
-			}
-
-			if (trimmed.startsWith('test ')) {
-				await handleTest(context, config, trimmed.slice('test '.length));
-				return;
-			}
-
-			if (trimmed === '' || trimmed === 'status') {
-				context.ui.notify(renderStatus(state, config), config.ok ? 'info' : 'error');
-				return;
-			}
-
-			context.ui.notify(usage, 'error');
 		},
 	};
 }

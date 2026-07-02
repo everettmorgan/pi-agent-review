@@ -25,13 +25,27 @@ type UiContext = {
 	};
 };
 
-function renderMenu(listContainer: Container, scope: Required<ReviewScope>, selectedIndex: number, theme: Theme): void {
+type Scope = Required<ReviewScope>;
+
+function readToggle(scope: Scope, key: Toggle['key']): boolean {
+	return key === 'reviewInput' ? scope.reviewInput : scope.reviewOutput;
+}
+
+function flipToggle(scope: Scope, key: Toggle['key']): void {
+	if (key === 'reviewInput') {
+		scope.reviewInput = !scope.reviewInput;
+	} else {
+		scope.reviewOutput = !scope.reviewOutput;
+	}
+}
+
+function renderMenu(listContainer: Container, scope: Scope, selectedIndex: number, theme: Theme): void {
 	listContainer.clear();
 	for (const [index, toggle] of toggles.entries()) {
 		const isSelected = index === selectedIndex;
 		const prefix = isSelected ? theme.fg('accent', '→ ') : '  ';
 		const label = isSelected ? theme.fg('accent', toggle.label) : toggle.label;
-		const state = scope[toggle.key] ? theme.fg('success', 'on') : theme.fg('muted', 'off');
+		const state = readToggle(scope, toggle.key) ? theme.fg('success', 'on') : theme.fg('muted', 'off');
 		listContainer.addChild(new Text(`${prefix}[${state}] ${label}`, 0, 0));
 	}
 
@@ -76,8 +90,7 @@ export async function openConfigMenu(context: UiContext, config: AgentReviewConf
 				} else if (keybindings.matches(data, 'tui.select.down')) {
 					selectedIndex = selectedIndex === toggles.length - 1 ? 0 : selectedIndex + 1;
 				} else if (keybindings.matches(data, 'tui.select.confirm')) {
-					const {key} = toggles[selectedIndex];
-					scope[key] = !scope[key];
+					flipToggle(scope, toggles[selectedIndex].key);
 				} else if (keybindings.matches(data, 'tui.select.cancel')) {
 					done(scope);
 					return;

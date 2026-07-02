@@ -73,7 +73,7 @@ function extractMessageText(message: {content: string | Array<{type: string; tex
 		return message.content;
 	}
 
-	const first = message.content[0];
+	const first = message.content.at(0);
 	return first?.type === 'text' && typeof first.text === 'string' ? first.text : '';
 }
 

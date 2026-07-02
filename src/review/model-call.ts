@@ -73,60 +73,46 @@ export function createTimeoutSignal(parentSignal: AbortSignal | undefined, timeo
 	};
 }
 
-// One constrained reviewer-model call: resolve and authenticate the model, call
-// it with a single forced decision tool under a timeout, and parse the result.
-export async function callReviewModel<T>(context: ReviewerContext, config: AgentReviewConfig, call: ModelCall<T>): Promise<ModelCallResult<T>> {
+type ResolvedModel =
+	| {ok: true; model: Model<Api>; apiKey: string; headers?: Record<string, string>}
+	| {ok: false; error: string};
+
+async function resolveModel(context: ReviewerContext, config: AgentReviewConfig): Promise<ResolvedModel> {
 	const model = selectModel(context, config);
 	if (model === undefined) {
-		return {ok: false, error: `Reviewer model ${config.reviewer.provider}/${config.reviewer.model} is unavailable.`, cost: 0};
+		return {ok: false, error: `Reviewer model ${config.reviewer.provider}/${config.reviewer.model} is unavailable.`};
 	}
 
 	const auth = await context.modelRegistry.getApiKeyAndHeaders(model);
 	if (!auth.ok) {
-		return {ok: false, error: `Reviewer auth failed: ${auth.error}`, cost: 0};
+		return {ok: false, error: `Reviewer auth failed: ${auth.error}`};
 	}
 
 	if (auth.apiKey === undefined || auth.apiKey === '') {
-		return {ok: false, error: 'Reviewer API key is missing.', cost: 0};
+		return {ok: false, error: 'Reviewer API key is missing.'};
 	}
 
-	const timeout = createTimeoutSignal(context.signal, config.review.timeoutMs);
-	const callOptions = {
-		apiKey: auth.apiKey, headers: auth.headers, maxTokens: 4096, signal: timeout.signal,
+	return {
+		ok: true, model, apiKey: auth.apiKey, headers: auth.headers,
 	};
-	const toolChoice = forcedToolChoice(model);
-	let response: Awaited<ReturnType<typeof complete>>;
+}
 
-	try {
-		response = await complete(
-			model,
-			{systemPrompt: call.systemPrompt, messages: call.messages, tools: [call.tool]},
-			{...callOptions, ...((toolChoice !== undefined) && {toolChoice})},
-		);
-	} catch (error: unknown) {
-		return {ok: false, error: `Reviewer request failed: ${errorMessage(error)}`, cost: 0};
-	} finally {
-		timeout.cleanup();
-	}
+type CompleteResponse = Awaited<ReturnType<typeof complete>>;
 
-	const cost = reviewCost(response);
-
+function parseResponse<T>(response: CompleteResponse, call: ModelCall<T>, cost: number): ModelCallResult<T> {
 	if (response.stopReason === 'error' || response.stopReason === 'aborted') {
 		return {ok: false, error: `Reviewer request failed (${response.stopReason}): ${response.errorMessage ?? 'unknown error'}`, cost};
 	}
 
 	const toolCall = response.content.find((part): part is ToolCall => part.type === 'toolCall' && part.name === call.tool.name);
-
 	if (toolCall !== undefined) {
 		const result = call.parseToolArguments(toolCall.arguments);
 		return result.ok ? {ok: true, value: result.value, cost} : {ok: false, error: result.error, cost};
 	}
 
-	if (call.parseTextFallback !== undefined) {
-		const textResult = call.parseTextFallback(extractTextResponse(response));
-		if (textResult.ok) {
-			return {ok: true, value: textResult.value, cost};
-		}
+	const textResult = call.parseTextFallback?.(extractTextResponse(response));
+	if (textResult?.ok === true) {
+		return {ok: true, value: textResult.value, cost};
 	}
 
 	const rawText = extractTextResponse(response).slice(0, 200);
@@ -136,4 +122,31 @@ export async function callReviewModel<T>(context: ReviewerContext, config: Agent
 		error: `Reviewer did not call the ${call.tool.name} tool (stopReason: ${response.stopReason}, content: ${contentTypes}). Text: ${rawText === '' ? '(empty)' : rawText}.`,
 		cost,
 	};
+}
+
+// One constrained reviewer-model call: resolve and authenticate the model, call
+// it with a single forced decision tool under a timeout, and parse the result.
+export async function callReviewModel<T>(context: ReviewerContext, config: AgentReviewConfig, call: ModelCall<T>): Promise<ModelCallResult<T>> {
+	const resolved = await resolveModel(context, config);
+	if (!resolved.ok) {
+		return {ok: false, error: resolved.error, cost: 0};
+	}
+
+	const timeout = createTimeoutSignal(context.signal, config.review.timeoutMs);
+	const toolChoice = forcedToolChoice(resolved.model);
+
+	try {
+		const response = await complete(
+			resolved.model,
+			{systemPrompt: call.systemPrompt, messages: call.messages, tools: [call.tool]},
+			{
+				apiKey: resolved.apiKey, headers: resolved.headers, maxTokens: 4096, signal: timeout.signal, ...((toolChoice !== undefined) && {toolChoice}),
+			},
+		);
+		return parseResponse(response, call, reviewCost(response));
+	} catch (error: unknown) {
+		return {ok: false, error: `Reviewer request failed: ${errorMessage(error)}`, cost: 0};
+	} finally {
+		timeout.cleanup();
+	}
 }

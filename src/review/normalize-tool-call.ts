@@ -51,7 +51,7 @@ export function normalizeToolCall(input: NormalizeToolCallInput, options: Normal
 		argumentsJson: neutralizeFence(truncateText(serialized, defaultArgumentLimit)),
 	};
 
-	if (options.approval) {
+	if (options.approval !== undefined) {
 		request.approval = options.approval;
 	}
 

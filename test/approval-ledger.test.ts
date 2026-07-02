@@ -8,7 +8,9 @@ import {
 const now = 1_000_000;
 
 function approvalFor(toolName: string, nonce: string, createdAt = now): PendingApproval {
-	return {nonce, toolName, approvedAction: `Tool: ${toolName}`, expiresAt: createdAt + approvalTtlMs};
+	return {
+		nonce, toolName, approvedAction: `Tool: ${toolName}`, expiresAt: createdAt + approvalTtlMs,
+	};
 }
 
 describe('ApprovalLedger', () => {
