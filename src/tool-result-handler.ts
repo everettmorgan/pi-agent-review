@@ -46,9 +46,18 @@ export function createToolResultHandler(state: RuntimeState) {
 			return withheldResult(`it could not be inspected (${review.error})`);
 		}
 
+		state.lastOutputReview = {
+			toolName: event.toolName,
+			containsSensitive: review.value.containsSensitive,
+			rationale: review.value.rationale,
+			categories: review.value.categories,
+			cost: review.cost,
+		};
+
+		const labels = review.value.categories.length > 0 ? ` [${review.value.categories.join(', ')}]` : '';
+
 		if (review.value.containsSensitive) {
-			const labels = review.value.categories.length > 0 ? ` [${review.value.categories.join(', ')}]` : '';
-			context.ui.notify(`Agent Review blocked ${event.toolName} output — sensitive data detected${labels}: ${review.value.rationale} Cost: ${formatCost(review.cost)}`, 'error');
+			context.ui.notify(`Output review — blocked ${event.toolName}: sensitive data detected${labels}: ${review.value.rationale} Cost: ${formatCost(review.cost)}`, 'error');
 			context.abort();
 			return {
 				isError: true,
@@ -56,6 +65,7 @@ export function createToolResultHandler(state: RuntimeState) {
 			};
 		}
 
+		context.ui.notify(`Output review — cleared ${event.toolName}: ${review.value.rationale} Cost: ${formatCost(review.cost)}`, 'info');
 		return undefined;
 	};
 }

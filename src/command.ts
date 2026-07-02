@@ -127,7 +127,7 @@ function renderStatus(state: RuntimeState, config: ConfigResult): string {
 			'',
 			'---',
 			'',
-			'Last decision:',
+			'Last request review:',
 			`Tool: ${lastDecision.toolName}`,
 			`Decision: ${lastDecision.decision}`,
 			`Reasoning: ${lastDecision.rationale}`,
@@ -137,6 +137,21 @@ function renderStatus(state: RuntimeState, config: ConfigResult): string {
 		}
 
 		statusLines.push(`Cost: ${formatCost(lastDecision.cost)}`);
+	}
+
+	const {lastOutputReview} = state;
+	if (lastOutputReview !== undefined) {
+		const categories = lastOutputReview.categories.length > 0 ? ` [${lastOutputReview.categories.join(', ')}]` : '';
+		statusLines.push(
+			'',
+			'---',
+			'',
+			'Last output review:',
+			`Tool: ${lastOutputReview.toolName}`,
+			`Verdict: ${lastOutputReview.containsSensitive ? `blocked — sensitive data${categories}` : 'cleared'}`,
+			`Reasoning: ${lastOutputReview.rationale}`,
+			`Cost: ${formatCost(lastOutputReview.cost)}`,
+		);
 	}
 
 	return statusLines.join('\n');

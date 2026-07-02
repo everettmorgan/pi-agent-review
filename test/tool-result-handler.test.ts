@@ -49,16 +49,18 @@ describe('createToolResultHandler', () => {
 		loadConfigMock.mockResolvedValue({ok: true, value: {reviewer: {}, review: {}}});
 	});
 
-	it('passes clean output through untouched', async () => {
-		reviewOutputMock.mockResolvedValue({ok: true, value: {containsSensitive: false, rationale: 'clean', categories: []}, cost: 0.01});
+	it('passes clean output through, records the assessment, and shows it', async () => {
+		reviewOutputMock.mockResolvedValue({ok: true, value: {containsSensitive: false, rationale: 'no secrets', categories: []}, cost: 0.01});
 		const state = createRuntimeState();
-		const {context, abort} = makeContext();
+		const {context, notify, abort} = makeContext();
 
 		const result = await createToolResultHandler(state)(makeEvent('ordinary file contents'), context);
 
 		expect(result).toBeUndefined();
 		expect(abort).not.toHaveBeenCalled();
 		expect(state.sessionCost).toBe(0.01);
+		expect(state.lastOutputReview).toMatchObject({toolName: 'read', containsSensitive: false, rationale: 'no secrets'});
+		expect(notify).toHaveBeenCalledWith(expect.stringContaining('Output review — cleared read'), 'info');
 	});
 
 	it('blocks, flags, and stops when a leak is detected', async () => {
@@ -72,6 +74,7 @@ describe('createToolResultHandler', () => {
 		expect(result?.content[0].text).toContain('sensitive information');
 		expect(abort).toHaveBeenCalledOnce();
 		expect(notify).toHaveBeenCalledWith(expect.stringContaining('aws-key'), 'error');
+		expect(state.lastOutputReview).toMatchObject({containsSensitive: true, categories: ['aws-key']});
 	});
 
 	it('withholds output and does not stop the turn when the reviewer fails', async () => {

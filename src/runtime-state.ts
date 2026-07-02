@@ -10,9 +10,18 @@ export type LastDecision = {
 	saferAlternative?: string;
 };
 
+export type LastOutputReview = {
+	toolName: string;
+	containsSensitive: boolean;
+	rationale: string;
+	categories: string[];
+	cost: number;
+};
+
 export type RuntimeState = {
 	tracker: DenialTracker;
 	lastDecision: LastDecision | undefined;
+	lastOutputReview: LastOutputReview | undefined;
 	reviewState: SessionReviewState;
 	sessionCost: number;
 };
@@ -21,6 +30,7 @@ export function createRuntimeState(): RuntimeState {
 	return {
 		tracker: new DenialTracker(defaultConfig.review),
 		lastDecision: undefined,
+		lastOutputReview: undefined,
 		reviewState: defaultSessionReviewState,
 		sessionCost: 0,
 	};
