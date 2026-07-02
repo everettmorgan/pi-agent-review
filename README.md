@@ -1,5 +1,7 @@
 # Agent Review for pi
 
+[![CI](https://github.com/everettmorgan/pi-agent-review/actions/workflows/ci.yml/badge.svg)](https://github.com/everettmorgan/pi-agent-review/actions/workflows/ci.yml)
+
 A pi coding-agent extension that reviews tool calls and tool output with an LLM
 reviewer, hard-denies access to secrets, and gates risky actions behind user
 approval.
@@ -91,4 +93,5 @@ npm run typecheck
 npm run lint    # xo
 ```
 
-See [docs/architecture.md](docs/architecture.md) for the module layout.
+See [docs/architecture.md](docs/architecture.md) for the module layout and
+[CONTRIBUTING.md](CONTRIBUTING.md) for the contribution workflow.
