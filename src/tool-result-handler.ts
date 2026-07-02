@@ -11,11 +11,9 @@ import {appendReviewLog} from './review-log.ts';
 import type {RuntimeState} from './runtime-state.ts';
 import {joinTextParts} from './shared/content.ts';
 
-// After a tool runs, inspect its output for sensitive data. A confirmed leak is
-// blocked (the content is withheld from the model and transcript), logged, and
-// the turn is aborted. Because the tool already executed, we fail closed the
-// same way the call path does: if the reviewer itself cannot run, the unreviewed
-// output is withheld rather than passed through.
+// A confirmed leak withholds the output from the model and transcript and stops
+// the turn. The tool already ran, so we fail closed: if the reviewer can't run,
+// the unreviewed output is withheld too.
 type WithheldResult = {isError: true; content: Array<{type: 'text'; text: string}>};
 
 export function createToolResultHandler(pi: ExtensionAPI, state: RuntimeState) {

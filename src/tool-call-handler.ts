@@ -27,9 +27,8 @@ function recordDenialAndBlock(state: RuntimeState, base: string, cost: number): 
 
 export function createToolCallHandler(pi: ExtensionAPI, state: RuntimeState, ledger: ApprovalLedger) {
 	return async (event: ToolCallEvent, context: ExtensionContext): Promise<ToolCallEventResult | undefined> => {
-		// The disabled-session and approval-tool paths must not depend on config
-		// parsing: a malformed config should never brick /agent-review off or the
-		// request_user_approval escape hatch that every denial message points to.
+		// Checked before config load so a malformed config can't brick the off
+		// switch or the request_user_approval escape hatch.
 		if (!state.reviewState.isReviewEnabled || event.toolName === approvalToolName) {
 			state.lastDecision = undefined;
 			return undefined;
@@ -54,11 +53,8 @@ export function createToolCallHandler(pi: ExtensionAPI, state: RuntimeState, led
 			return {block: true, reason: `Agent Review blocked this tool call: ${gateResult.reason}`};
 		}
 
-		// Peek at a live approval for this tool without consuming it: the grant
-		// must survive a transient reviewer failure or a reviewer denial so the
-		// agent can retry without re-prompting the user. The reviewer decides
-		// whether this call matches the approved action; it is consumed (by nonce)
-		// only once the reviewer terminally approves.
+		// Peek without consuming so the grant survives a reviewer failure or
+		// denial and the agent can retry. Consumed (by nonce) only on approve.
 		const approval = ledger.findPendingForTool(event.toolName, Date.now());
 		const approvalState = approval === undefined ? undefined : {status: 'approved_by_user' as const, approvedAction: approval.approvedAction};
 		const normalizedRequest = normalizeToolCall(call, approvalState === undefined ? {} : {approval: approvalState});

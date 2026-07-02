@@ -73,10 +73,8 @@ export function createTimeoutSignal(parentSignal: AbortSignal | undefined, timeo
 	};
 }
 
-// Shared plumbing for a single constrained reviewer-model call: resolve and
-// authenticate the model, call it with one forced decision tool under a timeout,
-// and parse the tool call (with an optional prose fallback). Callers supply the
-// prompt, the tool, and how to validate the tool's arguments.
+// One constrained reviewer-model call: resolve and authenticate the model, call
+// it with a single forced decision tool under a timeout, and parse the result.
 export async function callReviewModel<T>(context: ReviewerContext, config: AgentReviewConfig, call: ModelCall<T>): Promise<ModelCallResult<T>> {
 	const model = selectModel(context, config);
 	if (model === undefined) {

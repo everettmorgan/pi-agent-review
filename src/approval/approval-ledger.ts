@@ -11,12 +11,10 @@ export type PendingApproval = {
 	// Unique per approval; consumes exactly one grant and pairs an approval with
 	// its consumption across the session branch.
 	nonce: string;
-	// The tool the user approved. A live approval is matched to the next call of
-	// the same tool; the reviewer then confirms the proposed call matches the
-	// approved action below (exact input reproduction is not required).
+	// Matched to the next call of this tool; the reviewer confirms the call
+	// matches approvedAction (no exact-input reproduction needed).
 	toolName: string;
-	// Human-readable description of exactly what the user approved (tool, input,
-	// reason), shown to the reviewer so it can judge whether a call matches.
+	// What the user approved (tool, input, reason), shown to the reviewer.
 	approvedAction: string;
 	expiresAt: number;
 };
