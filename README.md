@@ -67,4 +67,4 @@ Default config:
 }
 ```
 
-Older config files with `review.isReviewEnabled` are tolerated for compatibility, but enabled/disabled state is now session-scoped and is no longer written to global config.
+Older config files with `review.isReviewEnabled` are tolerated (the field is ignored); enabled/disabled state is session-scoped and is never written to global config.
