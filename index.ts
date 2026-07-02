@@ -27,7 +27,7 @@ export default function agentReview(pi: ExtensionAPI): void {
 
 	pi.on('turn_start', async () => {
 		const config = await loadConfigFromPath(configPath);
-		state.tracker = new DenialTracker(config.ok ? config.value.review : defaultConfig.review);
+		state.tracker = new DenialTracker((config.ok ? config.value : defaultConfig).review);
 		state.sessionCost = 0;
 	});
 
