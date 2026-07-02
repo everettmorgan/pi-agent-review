@@ -5,7 +5,7 @@ import {
 	it,
 	vi,
 } from 'vitest';
-import {ApprovalLedger, computeArgsHash} from '../src/approval/approval-ledger.ts';
+import {ApprovalLedger} from '../src/approval/approval-ledger.ts';
 import {approvalToolName, registerApprovalTool} from '../src/approval/approval-tool.ts';
 
 function setup() {
@@ -43,15 +43,16 @@ describe('registerApprovalTool', () => {
 		expect(tool.name).toBe(approvalToolName);
 	});
 
-	it('records a unique, time-bound approval when the user confirms', async () => {
+	it('records a unique, time-bound approval describing the action when the user confirms', async () => {
 		const {appendEntry, ledger, tool} = setup();
 		const result = await execute(tool, makeContext(true, true));
 
-		const argsHash = computeArgsHash(params.toolName, params.input, '/repo');
-		const pending = ledger.findPending(argsHash, Date.now());
+		const pending = ledger.findPendingForTool('bash', Date.now());
 		expect(pending).toBeDefined();
 		expect(pending?.nonce).toEqual(expect.any(String));
 		expect(pending?.expiresAt).toBeGreaterThan(Date.now());
+		expect(pending?.approvedAction).toContain('npm install left-pad');
+		expect(pending?.approvedAction).toContain('Install dependency');
 		expect(appendEntry).toHaveBeenCalledWith('agent-review-approval', pending);
 		expect(result.content[0]).toMatchObject({text: expect.stringContaining('User approved bash') as string});
 	});
@@ -60,7 +61,7 @@ describe('registerApprovalTool', () => {
 		const {appendEntry, ledger, tool} = setup();
 		const result = await execute(tool, makeContext(true, false));
 
-		expect(ledger.findPending(computeArgsHash(params.toolName, params.input, '/repo'), Date.now())).toBeUndefined();
+		expect(ledger.findPendingForTool('bash', Date.now())).toBeUndefined();
 		expect(appendEntry).not.toHaveBeenCalled();
 		expect(result.content[0]).toMatchObject({text: expect.stringContaining('User declined') as string});
 	});

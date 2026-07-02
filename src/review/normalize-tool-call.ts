@@ -8,12 +8,12 @@ export type NormalizeToolCallInput = {
 
 export type ApprovalState = {
 	status: 'approved_by_user';
-	argsHash: string;
+	// What the user approved, for the reviewer to compare against the proposed call.
+	approvedAction: string;
 };
 
 export type NormalizeOptions = {
 	approval?: ApprovalState;
-	argsHash?: string;
 };
 
 export type ReviewRequest = {
@@ -21,7 +21,6 @@ export type ReviewRequest = {
 	cwd: string;
 	argumentsJson: string;
 	approval?: ApprovalState;
-	argsHash?: string;
 };
 
 const defaultArgumentLimit = 12_000;
@@ -54,11 +53,6 @@ export function normalizeToolCall(input: NormalizeToolCallInput, options: Normal
 
 	if (options.approval) {
 		request.approval = options.approval;
-	}
-
-	const argsHash = options.argsHash ?? options.approval?.argsHash;
-	if (argsHash !== undefined) {
-		request.argsHash = argsHash;
 	}
 
 	return request;

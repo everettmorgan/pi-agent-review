@@ -10,7 +10,6 @@ import {
 	type ConfigResult,
 } from './config.ts';
 import {openModelPicker} from './model-picker.ts';
-import {computeArgsHash} from './approval/approval-ledger.ts';
 import {errorMessage} from './shared/guards.ts';
 import {normalizeToolCall} from './review/normalize-tool-call.ts';
 import {formatCost, formatOutcome, performReview} from './review/run-review.ts';
@@ -88,8 +87,7 @@ async function handleTest(context: ExtensionCommandContext, config: ConfigResult
 		return;
 	}
 
-	const argsHash = computeArgsHash(toolName, input, context.cwd);
-	const request = normalizeToolCall({toolName, input, cwd: context.cwd}, {argsHash});
+	const request = normalizeToolCall({toolName, input, cwd: context.cwd});
 	const review = await performReview(context, config.value, request);
 
 	if (!review.ok) {

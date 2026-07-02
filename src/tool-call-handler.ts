@@ -6,7 +6,6 @@ import type {
 } from '@earendil-works/pi-coding-agent';
 import {classifyToolCall} from './approval/approval-gate.ts';
 import {
-	computeArgsHash,
 	consumptionEntryType,
 	type ApprovalLedger,
 } from './approval/approval-ledger.ts';
@@ -43,7 +42,6 @@ export function createToolCallHandler(pi: ExtensionAPI, state: RuntimeState, led
 		}
 
 		const call = {toolName: event.toolName, input: event.input, cwd: context.cwd};
-		const argsHash = computeArgsHash(event.toolName, event.input, context.cwd);
 
 		const gateResult = classifyToolCall(call);
 		if (gateResult.action === 'deny') {
@@ -51,14 +49,14 @@ export function createToolCallHandler(pi: ExtensionAPI, state: RuntimeState, led
 			return {block: true, reason: `Agent Review blocked this tool call: ${gateResult.reason}`};
 		}
 
-		// Peek at the approval without consuming it: a one-shot approval must
-		// survive a transient reviewer failure or a reviewer denial so the agent
-		// can retry without asking the user to approve the same action again. It
-		// is consumed (by its unique nonce) only once the reviewer terminally
-		// approves the call.
-		const approval = ledger.findPending(argsHash, Date.now());
-		const approvalState = approval === undefined ? undefined : {status: 'approved_by_user' as const, argsHash};
-		const normalizedRequest = normalizeToolCall(call, approvalState === undefined ? {} : {approval: approvalState, argsHash});
+		// Peek at a live approval for this tool without consuming it: the grant
+		// must survive a transient reviewer failure or a reviewer denial so the
+		// agent can retry without re-prompting the user. The reviewer decides
+		// whether this call matches the approved action; it is consumed (by nonce)
+		// only once the reviewer terminally approves.
+		const approval = ledger.findPendingForTool(event.toolName, Date.now());
+		const approvalState = approval === undefined ? undefined : {status: 'approved_by_user' as const, approvedAction: approval.approvedAction};
+		const normalizedRequest = normalizeToolCall(call, approvalState === undefined ? {} : {approval: approvalState});
 		const review = await performReview(context, configResult.value, normalizedRequest);
 
 		state.sessionCost += review.cost;

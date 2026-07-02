@@ -1,20 +1,23 @@
-import {createHash} from 'node:crypto';
-import {stringify} from 'safe-stable-stringify';
 import {isCustomEntry, isRecord} from '../shared/guards.ts';
 
 export const approvalEntryType = 'agent-review-approval';
 export const consumptionEntryType = 'agent-review-consumption';
 
 // A user approval is valid only briefly, so the agent can retry the denied call
-// immediately but a coincidentally-identical call much later cannot reuse it.
+// immediately but a coincidentally-similar call much later cannot reuse it.
 export const approvalTtlMs = 10 * 60 * 1000;
 
 export type PendingApproval = {
-	// Reproducible from the tool call; used to LOCATE a live approval on retry.
-	argsHash: string;
-	// Unique per approval; used to CONSUME exactly one grant and to pair an
-	// approval with its consumption across the session branch.
+	// Unique per approval; consumes exactly one grant and pairs an approval with
+	// its consumption across the session branch.
 	nonce: string;
+	// The tool the user approved. A live approval is matched to the next call of
+	// the same tool; the reviewer then confirms the proposed call matches the
+	// approved action below (exact input reproduction is not required).
+	toolName: string;
+	// Human-readable description of exactly what the user approved (tool, input,
+	// reason), shown to the reviewer so it can judge whether a call matches.
+	approvedAction: string;
 	expiresAt: number;
 };
 
@@ -22,11 +25,6 @@ export type LedgerSnapshot = {
 	pending: string[];
 	consumed: number;
 };
-
-export function computeArgsHash(toolName: string, input: unknown, cwd: string): string {
-	const payload = stringify({toolName, input, cwd}) ?? 'null';
-	return createHash('sha256').update(payload).digest('hex').slice(0, 16);
-}
 
 export class ApprovalLedger {
 	private pending: PendingApproval[] = [];
@@ -36,9 +34,9 @@ export class ApprovalLedger {
 		this.pending.push(approval);
 	}
 
-	// The oldest live (non-expired) approval matching this call, or undefined.
-	findPending(argsHash: string, now: number): PendingApproval | undefined {
-		return this.pending.find(approval => approval.argsHash === argsHash && approval.expiresAt > now);
+	// The oldest live (non-expired) approval for this tool, or undefined.
+	findPendingForTool(toolName: string, now: number): PendingApproval | undefined {
+		return this.pending.find(approval => approval.toolName === toolName && approval.expiresAt > now);
 	}
 
 	// Remove exactly one grant by its nonce. Returns whether one was removed.
@@ -76,14 +74,15 @@ export class ApprovalLedger {
 	}
 
 	snapshot(): LedgerSnapshot {
-		return {pending: this.pending.map(approval => approval.argsHash), consumed: this.consumed};
+		return {pending: this.pending.map(approval => approval.toolName), consumed: this.consumed};
 	}
 }
 
 function isApprovalData(data: unknown): data is PendingApproval {
 	return isRecord(data)
-		&& typeof data.argsHash === 'string'
 		&& typeof data.nonce === 'string'
+		&& typeof data.toolName === 'string'
+		&& typeof data.approvedAction === 'string'
 		&& typeof data.expiresAt === 'number';
 }
 

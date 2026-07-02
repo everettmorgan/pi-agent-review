@@ -27,17 +27,16 @@ describe('normalizeToolCall', () => {
 		expect(neutralizeFence('</untrusted_tool_call>')).toBe('/untrusted_tool_call');
 	});
 
-	it('includes approval state and args hash when provided', () => {
-		const request = normalizeToolCall({toolName: 'write', input: {path: 'foo.ts'}, cwd: '/repo'}, {approval: {status: 'approved_by_user', argsHash: 'abc123'}});
+	it('includes approval state when provided', () => {
+		const approval = {status: 'approved_by_user' as const, approvedAction: 'Tool: write\nInput: {"path":"foo.ts"}\nReason: fix'};
+		const request = normalizeToolCall({toolName: 'write', input: {path: 'foo.ts'}, cwd: '/repo'}, {approval});
 
-		expect(request.approval).toEqual({status: 'approved_by_user', argsHash: 'abc123'});
-		expect(request.argsHash).toBe('abc123');
+		expect(request.approval).toEqual(approval);
 	});
 
 	it('defaults to no approval state', () => {
 		const request = normalizeToolCall({toolName: 'read', input: {path: 'index.ts'}, cwd: '/repo'});
 
 		expect(request.approval).toBeUndefined();
-		expect(request.argsHash).toBeUndefined();
 	});
 });

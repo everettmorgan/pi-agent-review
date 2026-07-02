@@ -83,7 +83,7 @@ describe('reviewer approval state', () => {
 			toolName: 'write',
 			cwd: '/repo',
 			argumentsJson: '{"path":"foo.ts"}',
-			approval: {status: 'approved_by_user' as const, argsHash: 'abc123'},
+			approval: {status: 'approved_by_user' as const, approvedAction: 'Tool: write\nInput: {"path":"foo.ts"}\nReason: fix the bug'},
 		};
 		const message = buildUserMessage(
 			request,
@@ -91,8 +91,8 @@ describe('reviewer approval state', () => {
 			'assistant: I will write the file.',
 		);
 		const text = extractMessageText(message);
-		expect(text).toContain('Approval status: approved_by_user');
-		expect(text).toContain('Exact-action match');
+		expect(text).toContain('User approval present');
+		expect(text).toContain('Reason: fix the bug');
 	});
 
 	it('does not include approval section when approval is absent', () => {
@@ -102,13 +102,13 @@ describe('reviewer approval state', () => {
 			'assistant: I will read the file.',
 		);
 		const text = extractMessageText(message);
-		expect(text).not.toContain('Approval status:');
+		expect(text).not.toContain('User approval present');
 	});
 });
 
-describe('reviewer deterministic approval prompt', () => {
-	it('teaches the reviewer deterministic approval rules', () => {
-		expect(systemPrompt).toContain('Deterministic approval rules');
+describe('reviewer approval prompt', () => {
+	it('teaches the reviewer how to treat user approvals', () => {
+		expect(systemPrompt).toContain('User approval rules');
 		expect(systemPrompt).toContain('approved_by_user');
 	});
 });
