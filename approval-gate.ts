@@ -3,9 +3,6 @@ import {isRecord} from './guards.ts';
 export type ApprovalDecision = {
 	action: 'allow';
 } | {
-	action: 'require_approval';
-	reason: string;
-} | {
 	action: 'deny';
 	reason: string;
 };
@@ -15,10 +12,6 @@ type ToolCallInput = {
 	input: unknown;
 	cwd: string;
 };
-
-const readOnlyTools = new Set(['read', 'ls', 'grep', 'find']);
-
-const allowlistCommands = new Set(['agent-review']);
 
 function extractPath(input: unknown): string | undefined {
 	if (!isRecord(input)) {
@@ -68,36 +61,10 @@ function targetsSecret(path: string): boolean {
 }
 
 export function classifyToolCall(call: ToolCallInput): ApprovalDecision {
-	const {toolName, input, cwd} = call;
-
-	if (readOnlyTools.has(toolName)) {
-		const filePath = extractPath(input);
-		if (filePath !== undefined && targetsSecret(normalizePath(filePath, cwd))) {
-			return {action: 'deny', reason: `Reading secret or credential file is not permitted: ${filePath}`};
-		}
-
-		return {action: 'allow'};
+	const filePath = extractPath(call.input);
+	if (filePath !== undefined && targetsSecret(normalizePath(filePath, call.cwd))) {
+		return {action: 'deny', reason: `Access to secret or credential file is not permitted: ${filePath}`};
 	}
 
-	if (allowlistCommands.has(toolName)) {
-		return {action: 'allow'};
-	}
-
-	if (toolName === 'bash') {
-		return {action: 'require_approval', reason: 'Shell execution requires approval'};
-	}
-
-	if (toolName === 'write') {
-		return {action: 'require_approval', reason: 'File write requires approval'};
-	}
-
-	if (toolName === 'edit') {
-		return {action: 'require_approval', reason: 'File edit requires approval'};
-	}
-
-	if (toolName === 'mcp') {
-		return {action: 'require_approval', reason: 'MCP tool call requires approval'};
-	}
-
-	return {action: 'require_approval', reason: `Tool ${toolName} requires approval`};
+	return {action: 'allow'};
 }

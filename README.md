@@ -35,7 +35,9 @@ npm run typecheck
 
 Agent Review is enabled by default in every session. When enabled, every `tool_call` is sent to a direct reviewer model call using `complete` from `@earendil-works/pi-ai/compat`. Approved calls run unchanged. Denied calls are blocked with no-workaround guidance. Reviewer failures block by default.
 
-Agent Review uses a deterministic approval gate for risky actions. Read-only tools (read, ls, grep, find) run without approval. Writes, edits, bash, MCP calls, and unknown tools require explicit user confirmation via a dialog showing the exact action. Approvals are recorded as session entries and consumed on exact-action match. The reviewer handles residual safety only and can still deny hard-safety violations (secrets, exfiltration, destructive actions) even when the user approved. Direct user messages and structured `ask_user_question` answers are passed as trusted context but are not the authorization mechanism.
+A deterministic gate hard-denies access to secret and credential paths (`.env`, `~/.ssh`, key files, credential stores) for any tool. Everything else goes to the reviewer, which approves routine low-risk actions and denies risky ones by default.
+
+When the reviewer denies a call the agent believes the user wants, the agent can call the `request_user_approval` tool, which shows the exact tool name and arguments in a confirmation dialog. If the user approves, a one-shot approval is recorded as a session entry keyed by an exact args hash; when the agent retries the identical call, the reviewer sees `approved_by_user` and treats it as strong authorization. The reviewer can still deny hard-safety violations (secrets, exfiltration, destructive actions) even with user approval. Direct user messages and structured `ask_user_question` answers are passed as trusted context but are not the authorization mechanism.
 
 `/agent-review off` disables review for the current session only and records that choice in the session branch. `/agent-review on` re-enables review for the current session. New sessions default back to enabled unless they contain their own Agent Review session state.
 

@@ -6,11 +6,11 @@ import type {
 } from '@earendil-works/pi-coding-agent';
 import {classifyToolCall} from './approval-gate.ts';
 import {
-	approvalEntryType,
 	computeArgsHash,
 	consumptionEntryType,
 	type ApprovalLedger,
 } from './approval-ledger.ts';
+import {approvalToolName} from './approval-tool.ts';
 import {configPath, loadConfigFromPath} from './config.ts';
 import {normalizeToolCall} from './normalize-tool-call.ts';
 import {formatDenialReason, formatReviewerFailureReason} from './review-decision.ts';
@@ -25,7 +25,7 @@ export function createToolCallHandler(pi: ExtensionAPI, state: RuntimeState, led
 			return {block: true, reason: formatReviewerFailureReason(configResult.error)};
 		}
 
-		if (!state.reviewState.isReviewEnabled) {
+		if (!state.reviewState.isReviewEnabled || event.toolName === approvalToolName) {
 			state.lastDecision = undefined;
 			return undefined;
 		}
@@ -37,25 +37,6 @@ export function createToolCallHandler(pi: ExtensionAPI, state: RuntimeState, led
 		if (gateResult.action === 'deny') {
 			state.lastDecision = undefined;
 			return {block: true, reason: `Agent Review blocked this tool call: ${gateResult.reason}`};
-		}
-
-		if (gateResult.action === 'require_approval') {
-			if (!context.hasUI) {
-				return {block: true, reason: `Agent Review requires approval for ${event.toolName}: ${gateResult.reason}. Run in interactive mode to approve.`};
-			}
-
-			const isApproved = await context.ui.confirm(
-				`Agent Review: ${event.toolName}`,
-				`${gateResult.reason}\n\nTool: ${event.toolName}\nCwd: ${context.cwd}\nArgs: ${request.argumentsJson.slice(0, 500)}`,
-			);
-
-			if (!isApproved) {
-				state.lastDecision = undefined;
-				return {block: true, reason: `User denied ${event.toolName} via approval gate.`};
-			}
-
-			ledger.record({argsHash});
-			pi.appendEntry(approvalEntryType, {argsHash, oneShot: true});
 		}
 
 		const approvalState = ledger.consume(argsHash)

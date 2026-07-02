@@ -1,5 +1,6 @@
 import type {ExtensionAPI} from '@earendil-works/pi-coding-agent';
 import {ApprovalLedger} from './approval-ledger.ts';
+import {registerApprovalTool} from './approval-tool.ts';
 import {createAgentReviewCommand} from './command.ts';
 import {configPath, defaultConfig, loadConfigFromPath} from './config.ts';
 import {DenialTracker} from './denial-tracker.ts';
@@ -31,6 +32,7 @@ export default function agentReview(pi: ExtensionAPI): void {
 		state.sessionCost = 0;
 	});
 
+	registerApprovalTool(pi, ledger);
 	pi.on('tool_call', createToolCallHandler(pi, state, ledger));
 
 	pi.registerCommand('agent-review', createAgentReviewCommand(pi, state));
