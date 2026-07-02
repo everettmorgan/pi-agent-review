@@ -6,7 +6,7 @@ import {
 	it,
 	vi,
 } from 'vitest';
-import {ApprovalLedger, computeArgsHash} from '../src/approval/approval-ledger.ts';
+import {ApprovalLedger, approvalTtlMs, computeArgsHash} from '../src/approval/approval-ledger.ts';
 import {approvalToolName} from '../src/approval/approval-tool.ts';
 import type {ReviewRequest} from '../src/review/normalize-tool-call.ts';
 import type * as RunReview from '../src/review/run-review.ts';
@@ -39,6 +39,16 @@ function makeContext() {
 
 function makeEvent(toolName = 'bash', input?: unknown): ToolCallEvent {
 	return {toolName, input: input ?? {command: 'npm test'}} as unknown as ToolCallEvent;
+}
+
+function grant(ledger: ApprovalLedger, event: ToolCallEvent, nonce = 'test-nonce'): string {
+	const argsHash = computeArgsHash(event.toolName, event.input, '/repo');
+	ledger.record({argsHash, nonce, expiresAt: Date.now() + approvalTtlMs});
+	return argsHash;
+}
+
+function isPending(ledger: ApprovalLedger, argsHash: string): boolean {
+	return ledger.findPending(argsHash, Date.now()) !== undefined;
 }
 
 describe('createToolCallHandler', () => {
@@ -108,16 +118,15 @@ describe('createToolCallHandler', () => {
 		const ledger = new ApprovalLedger();
 		const {pi, appendEntry} = makePi();
 		const event = makeEvent();
-		const argsHash = computeArgsHash(event.toolName, event.input, '/repo');
-		ledger.record({argsHash});
+		const argsHash = grant(ledger, event, 'nonce-1');
 		const handler = createToolCallHandler(pi, state, ledger);
 
 		await handler(event, makeContext().context);
 
 		const request = performReviewMock.mock.calls[0]?.[2] as ReviewRequest;
 		expect(request.approval).toEqual({status: 'approved_by_user', argsHash});
-		expect(appendEntry).toHaveBeenCalledWith('agent-review-consumption', {argsHash});
-		expect(ledger.hasPending(argsHash)).toBe(false);
+		expect(appendEntry).toHaveBeenCalledWith('agent-review-consumption', {nonce: 'nonce-1'});
+		expect(isPending(ledger, argsHash)).toBe(false);
 	});
 
 	it('blocks on reviewer failure', async () => {
@@ -138,14 +147,13 @@ describe('createToolCallHandler', () => {
 		const ledger = new ApprovalLedger();
 		const {pi, appendEntry} = makePi();
 		const event = makeEvent();
-		const argsHash = computeArgsHash(event.toolName, event.input, '/repo');
-		ledger.record({argsHash});
+		const argsHash = grant(ledger, event);
 		const handler = createToolCallHandler(pi, state, ledger);
 
 		await handler(event, makeContext().context);
 
 		// Approval survives so the agent can retry without re-prompting the user.
-		expect(ledger.hasPending(argsHash)).toBe(true);
+		expect(isPending(ledger, argsHash)).toBe(true);
 		expect(appendEntry).not.toHaveBeenCalled();
 	});
 
@@ -154,12 +162,11 @@ describe('createToolCallHandler', () => {
 		const state = createRuntimeState();
 		const ledger = new ApprovalLedger();
 		const event = makeEvent();
-		const argsHash = computeArgsHash(event.toolName, event.input, '/repo');
-		ledger.record({argsHash});
+		const argsHash = grant(ledger, event);
 		const handler = createToolCallHandler(makePi().pi, state, ledger);
 
 		await handler(event, makeContext().context);
 
-		expect(ledger.hasPending(argsHash)).toBe(true);
+		expect(isPending(ledger, argsHash)).toBe(true);
 	});
 });

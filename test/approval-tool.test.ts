@@ -43,13 +43,16 @@ describe('registerApprovalTool', () => {
 		expect(tool.name).toBe(approvalToolName);
 	});
 
-	it('records a one-shot ledger approval when the user confirms', async () => {
+	it('records a unique, time-bound approval when the user confirms', async () => {
 		const {appendEntry, ledger, tool} = setup();
 		const result = await execute(tool, makeContext(true, true));
 
 		const argsHash = computeArgsHash(params.toolName, params.input, '/repo');
-		expect(ledger.hasPending(argsHash)).toBe(true);
-		expect(appendEntry).toHaveBeenCalledWith('agent-review-approval', {argsHash, oneShot: true});
+		const pending = ledger.findPending(argsHash, Date.now());
+		expect(pending).toBeDefined();
+		expect(pending?.nonce).toEqual(expect.any(String));
+		expect(pending?.expiresAt).toBeGreaterThan(Date.now());
+		expect(appendEntry).toHaveBeenCalledWith('agent-review-approval', pending);
 		expect(result.content[0]).toMatchObject({text: expect.stringContaining('User approved bash') as string});
 	});
 
@@ -57,7 +60,7 @@ describe('registerApprovalTool', () => {
 		const {appendEntry, ledger, tool} = setup();
 		const result = await execute(tool, makeContext(true, false));
 
-		expect(ledger.hasPending(computeArgsHash(params.toolName, params.input, '/repo'))).toBe(false);
+		expect(ledger.findPending(computeArgsHash(params.toolName, params.input, '/repo'), Date.now())).toBeUndefined();
 		expect(appendEntry).not.toHaveBeenCalled();
 		expect(result.content[0]).toMatchObject({text: expect.stringContaining('User declined') as string});
 	});

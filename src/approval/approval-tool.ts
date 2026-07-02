@@ -1,7 +1,13 @@
+import {randomUUID} from 'node:crypto';
 import type {ExtensionAPI} from '@earendil-works/pi-coding-agent';
 import {stringify} from 'safe-stable-stringify';
 import {Type} from 'typebox';
-import {approvalEntryType, computeArgsHash, type ApprovalLedger} from './approval-ledger.ts';
+import {
+	approvalEntryType,
+	approvalTtlMs,
+	computeArgsHash,
+	type ApprovalLedger,
+} from './approval-ledger.ts';
 
 export const approvalToolName = 'request_user_approval';
 
@@ -44,11 +50,15 @@ export function registerApprovalTool(pi: ExtensionAPI, ledger: ApprovalLedger): 
 				};
 			}
 
-			const argsHash = computeArgsHash(params.toolName, params.input, context.cwd);
-			ledger.record({argsHash});
-			pi.appendEntry(approvalEntryType, {argsHash, oneShot: true});
+			const approval = {
+				argsHash: computeArgsHash(params.toolName, params.input, context.cwd),
+				nonce: randomUUID(),
+				expiresAt: Date.now() + approvalTtlMs,
+			};
+			ledger.record(approval);
+			pi.appendEntry(approvalEntryType, approval);
 			return {
-				content: [{type: 'text', text: `User approved ${params.toolName} (argsHash: ${argsHash}). Retry the identical tool call now; the approval is one-shot and only matches the exact same tool name and input.`}],
+				content: [{type: 'text', text: `User approved ${params.toolName}. Retry the identical tool call now; this approval authorizes exactly one execution of that call and expires shortly.`}],
 				details: undefined,
 			};
 		},

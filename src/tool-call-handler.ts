@@ -45,9 +45,10 @@ export function createToolCallHandler(pi: ExtensionAPI, state: RuntimeState, led
 		// Peek at the approval without consuming it: a one-shot approval must
 		// survive a transient reviewer failure or a reviewer denial so the agent
 		// can retry without asking the user to approve the same action again. It
-		// is consumed only once the reviewer terminally approves the call.
-		const hasApproval = ledger.hasPending(argsHash);
-		const approvalState = hasApproval ? {status: 'approved_by_user' as const, argsHash} : undefined;
+		// is consumed (by its unique nonce) only once the reviewer terminally
+		// approves the call.
+		const approval = ledger.findPending(argsHash, Date.now());
+		const approvalState = approval === undefined ? undefined : {status: 'approved_by_user' as const, argsHash};
 		const normalizedRequest = approvalState === undefined
 			? request
 			: normalizeToolCall({toolName: event.toolName, input: event.input, cwd: context.cwd}, {approval: approvalState, argsHash});
@@ -78,9 +79,9 @@ export function createToolCallHandler(pi: ExtensionAPI, state: RuntimeState, led
 			return {block: true, reason: circuit.tripped ? `${base} ${circuit.reason ?? ''}` : `${base} Review cost: ${formatCost(review.cost)}.`};
 		}
 
-		if (hasApproval) {
-			ledger.consume(argsHash);
-			pi.appendEntry(consumptionEntryType, {argsHash});
+		if (approval !== undefined) {
+			ledger.consume(approval.nonce);
+			pi.appendEntry(consumptionEntryType, {nonce: approval.nonce});
 		}
 
 		state.tracker.recordApproved();
