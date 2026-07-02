@@ -1,5 +1,6 @@
 import {createHash} from 'node:crypto';
 import {stringify} from 'safe-stable-stringify';
+import {isCustomEntry, isRecord} from './guards.ts';
 
 export const approvalEntryType = 'agent-review-approval';
 export const consumptionEntryType = 'agent-review-consumption';
@@ -54,7 +55,7 @@ export class ApprovalLedger {
 				pendingSet.add(entry.data.argsHash);
 			}
 
-			if (entry.customType === consumptionEntryType && isConsumptionData(entry.data)) {
+			if (entry.customType === consumptionEntryType && isApprovalData(entry.data)) {
 				pendingSet.delete(entry.data.argsHash);
 				this.consumed += 1;
 			}
@@ -70,21 +71,6 @@ export class ApprovalLedger {
 	}
 }
 
-function isCustomEntry(entry: unknown): entry is {type: string; customType: string; data: unknown} {
-	return entry !== null
-		&& typeof entry === 'object'
-		&& !Array.isArray(entry)
-		&& (entry as {type?: unknown}).type === 'custom'
-		&& typeof (entry as {customType?: unknown}).customType === 'string';
-}
-
 function isApprovalData(data: unknown): data is {argsHash: string} {
-	return data !== null
-		&& typeof data === 'object'
-		&& !Array.isArray(data)
-		&& typeof (data as {argsHash?: unknown}).argsHash === 'string';
-}
-
-function isConsumptionData(data: unknown): data is {argsHash: string} {
-	return isApprovalData(data);
+	return isRecord(data) && typeof data.argsHash === 'string';
 }

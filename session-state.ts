@@ -1,3 +1,5 @@
+import {isCustomEntry, isRecord} from './guards.ts';
+
 export const agentReviewStateEntryType = 'agent-review-state';
 
 export type SessionReviewState = {
@@ -8,23 +10,14 @@ export const defaultSessionReviewState: SessionReviewState = {
 	isReviewEnabled: true,
 };
 
-type CustomEntryLike = {
-	type?: unknown;
-	customType?: unknown;
-	data?: unknown;
-};
-
 function isStateData(value: unknown): value is SessionReviewState {
-	return value !== null
-		&& typeof value === 'object'
-		&& !Array.isArray(value)
-		&& typeof (value as {isReviewEnabled?: unknown}).isReviewEnabled === 'boolean';
+	return isRecord(value) && typeof value.isReviewEnabled === 'boolean';
 }
 
 export function getReviewStateFromBranch(branch: unknown[]): SessionReviewState {
 	for (let index = branch.length - 1; index >= 0; index--) {
-		const entry = branch[index] as CustomEntryLike;
-		if (entry.type === 'custom' && entry.customType === agentReviewStateEntryType && isStateData(entry.data)) {
+		const entry = branch[index];
+		if (isCustomEntry(entry) && entry.customType === agentReviewStateEntryType && isStateData(entry.data)) {
 			return {isReviewEnabled: entry.data.isReviewEnabled};
 		}
 	}

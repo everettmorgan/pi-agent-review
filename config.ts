@@ -6,6 +6,7 @@ import {
 } from 'node:fs/promises';
 import {homedir} from 'node:os';
 import path from 'node:path';
+import {errorMessage} from './guards.ts';
 
 export type ReviewConfig = {
 	isReviewEnabled: boolean;
@@ -95,8 +96,7 @@ export async function loadConfigFromPath(filePath: string): Promise<ConfigResult
 
 		return {ok: true, value: config};
 	} catch (error: unknown) {
-		const message = error instanceof Error ? error.message : String(error);
-		return {ok: false, error: `Invalid config at ${filePath}: ${message}`};
+		return {ok: false, error: `Invalid config at ${filePath}: ${errorMessage(error)}`};
 	}
 }
 
@@ -142,7 +142,6 @@ export async function setReviewerModel(filePath: string, spec: string): Promise<
 		await writeFile(filePath, `${JSON.stringify(configToPersist, null, 2)}\n`, 'utf8');
 		return {ok: true, value: next};
 	} catch (error: unknown) {
-		const message = error instanceof Error ? error.message : String(error);
-		return {ok: false, error: `Failed to write config at ${filePath}: ${message}`};
+		return {ok: false, error: `Failed to write config at ${filePath}: ${errorMessage(error)}`};
 	}
 }

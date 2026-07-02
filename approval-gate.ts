@@ -1,3 +1,5 @@
+import {isRecord} from './guards.ts';
+
 export type ApprovalDecision = {
 	action: 'allow';
 } | {
@@ -17,10 +19,6 @@ type ToolCallInput = {
 const readOnlyTools = new Set(['read', 'ls', 'grep', 'find']);
 
 const allowlistCommands = new Set(['agent-review']);
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-	return value !== null && typeof value === 'object' && !Array.isArray(value);
-}
 
 function extractPath(input: unknown): string | undefined {
 	if (!isRecord(input)) {

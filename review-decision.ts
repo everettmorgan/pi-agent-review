@@ -1,3 +1,5 @@
+import {errorMessage, isRecord} from './guards.ts';
+
 export type ReviewDecision = {
 	decision: 'approve' | 'deny';
 	rationale: string;
@@ -7,10 +9,6 @@ export type ReviewDecision = {
 export type DecisionParseResult = {ok: true; value: ReviewDecision} | {ok: false; error: string};
 
 const noWorkaroundGuidance = 'Do not pursue the same outcome through workaround, indirect execution, or policy circumvention. Continue only with a materially safer alternative, or stop and ask the user.';
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-	return value !== null && typeof value === 'object' && !Array.isArray(value);
-}
 
 export function validateDecision(value: unknown): DecisionParseResult {
 	if (!isRecord(value)) {
@@ -105,8 +103,7 @@ export function parseReviewDecision(text: string): DecisionParseResult {
 	try {
 		return validateDecision(JSON.parse(json));
 	} catch (error: unknown) {
-		const message = error instanceof Error ? error.message : String(error);
-		return {ok: false, error: `Reviewer output was not valid JSON: ${message}`};
+		return {ok: false, error: `Reviewer output was not valid JSON: ${errorMessage(error)}`};
 	}
 }
 

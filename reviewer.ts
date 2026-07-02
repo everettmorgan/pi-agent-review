@@ -9,6 +9,7 @@ import {
 import {complete} from '@earendil-works/pi-ai/compat';
 import {Type} from 'typebox';
 import type {AgentReviewConfig} from './config.ts';
+import {errorMessage} from './guards.ts';
 import type {ReviewRequest} from './normalize-tool-call.ts';
 import {parseReviewDecision, validateDecision, type ReviewDecision} from './review-decision.ts';
 import {forcedToolChoice} from './tool-support.ts';
@@ -159,8 +160,7 @@ export async function runReviewer(context: ReviewerContext, config: AgentReviewC
 			{...callOptions, ...((toolChoice !== undefined) && {toolChoice})},
 		);
 	} catch (error: unknown) {
-		const message = error instanceof Error ? error.message : String(error);
-		return {ok: false, error: `Reviewer request failed: ${message}`, cost: 0};
+		return {ok: false, error: `Reviewer request failed: ${errorMessage(error)}`, cost: 0};
 	} finally {
 		timeout.cleanup();
 	}

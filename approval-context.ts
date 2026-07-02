@@ -1,3 +1,4 @@
+import {isRecord} from './guards.ts';
 import {neutralizeFence, truncateText} from './normalize-tool-call.ts';
 
 export type TrustedIntentContext = {
@@ -20,10 +21,6 @@ type MessageLike = {
 	toolName?: unknown;
 	content?: unknown;
 };
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-	return typeof value === 'object' && value !== null;
-}
 
 function unwrapMessage(entry: unknown): MessageLike {
 	if (!isRecord(entry)) {
