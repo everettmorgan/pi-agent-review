@@ -7,13 +7,7 @@ import {configPath, loadConfigFromPath} from './config.ts';
 import {reviewOutput} from './review/output-reviewer.ts';
 import {formatCost} from './review/run-review.ts';
 import type {RuntimeState} from './runtime-state.ts';
-
-function extractOutputText(content: ToolResultEvent['content']): string {
-	return content
-		.filter((part): part is {type: 'text'; text: string} => part.type === 'text' && typeof part.text === 'string')
-		.map(part => part.text)
-		.join('\n');
-}
+import {joinTextParts} from './shared/content.ts';
 
 // After a tool runs, inspect its output for sensitive data. A confirmed leak is
 // blocked (the content is withheld from the model and transcript), flagged to
@@ -28,7 +22,7 @@ export function createToolResultHandler(state: RuntimeState) {
 			return undefined;
 		}
 
-		const output = extractOutputText(event.content);
+		const output = joinTextParts(event.content);
 		if (output.trim() === '') {
 			return undefined;
 		}

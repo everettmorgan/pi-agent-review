@@ -7,6 +7,7 @@ import {
 } from '@earendil-works/pi-ai';
 import {complete} from '@earendil-works/pi-ai/compat';
 import type {AgentReviewConfig} from '../config.ts';
+import {joinTextParts} from '../shared/content.ts';
 import {errorMessage} from '../shared/guards.ts';
 import {forcedToolChoice} from './tool-support.ts';
 
@@ -37,11 +38,7 @@ function reviewCost(response: {usage?: {cost?: {total?: number}}}): number {
 }
 
 export function extractTextResponse(response: {content: Array<{type: string; text?: string}>}): string {
-	return response.content
-		.filter((part): part is {type: 'text'; text: string} => part.type === 'text' && typeof part.text === 'string')
-		.map(part => part.text)
-		.join('\n')
-		.trim();
+	return joinTextParts(response.content).trim();
 }
 
 function selectModel(context: ReviewerContext, config: AgentReviewConfig): Model<Api> | undefined {
@@ -82,7 +79,7 @@ export function createTimeoutSignal(parentSignal: AbortSignal | undefined, timeo
 // prompt, the tool, and how to validate the tool's arguments.
 export async function callReviewModel<T>(context: ReviewerContext, config: AgentReviewConfig, call: ModelCall<T>): Promise<ModelCallResult<T>> {
 	const model = selectModel(context, config);
-	if (model === undefined || model === null) {
+	if (model === undefined) {
 		return {ok: false, error: `Reviewer model ${config.reviewer.provider}/${config.reviewer.model} is unavailable.`, cost: 0};
 	}
 
@@ -91,7 +88,7 @@ export async function callReviewModel<T>(context: ReviewerContext, config: Agent
 		return {ok: false, error: `Reviewer auth failed: ${auth.error}`, cost: 0};
 	}
 
-	if ([undefined, null, ''].includes(auth.apiKey)) {
+	if (auth.apiKey === undefined || auth.apiKey === '') {
 		return {ok: false, error: 'Reviewer API key is missing.', cost: 0};
 	}
 
@@ -116,7 +113,7 @@ export async function callReviewModel<T>(context: ReviewerContext, config: Agent
 
 	const cost = reviewCost(response);
 
-	if (['error', 'aborted'].includes(response.stopReason)) {
+	if (response.stopReason === 'error' || response.stopReason === 'aborted') {
 		return {ok: false, error: `Reviewer request failed (${response.stopReason}): ${response.errorMessage ?? 'unknown error'}`, cost};
 	}
 

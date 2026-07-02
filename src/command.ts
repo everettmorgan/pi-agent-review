@@ -27,36 +27,44 @@ function handleToggle(pi: ExtensionAPI, state: RuntimeState, context: ExtensionC
 
 async function handleModel(context: ExtensionCommandContext, config: ConfigResult, spec: string): Promise<void> {
 	if (spec === '') {
-		if (context.mode !== 'tui') {
-			context.ui.notify(
-				config.ok
-					? `Agent Review reviewer model: ${config.value.reviewer.provider}/${config.value.reviewer.model}`
-					: `Agent Review config error: ${config.error}`,
-				config.ok ? 'info' : 'error',
-			);
-			return;
-		}
-
-		if (!config.ok) {
-			context.ui.notify(`Agent Review config error: ${config.error}`, 'error');
-			return;
-		}
-
-		const choice = await openModelPicker(context, config.value);
-		if (choice === undefined) {
-			return;
-		}
-
-		spec = choice;
-	}
-
-	const result = await setReviewerModel(configPath, spec);
-	if (!result.ok) {
-		context.ui.notify(`Agent Review: ${result.error}`, 'error');
+		await showOrPickModel(context, config);
 		return;
 	}
 
-	context.ui.notify(`Reviewer model set to ${result.value.reviewer.provider}/${result.value.reviewer.model}.`, 'info');
+	await applyModelSpec(context, spec);
+}
+
+// With no spec: outside a TUI just report the current model; inside a TUI open
+// the picker and apply the chosen model.
+async function showOrPickModel(context: ExtensionCommandContext, config: ConfigResult): Promise<void> {
+	if (context.mode !== 'tui') {
+		context.ui.notify(
+			config.ok
+				? `Agent Review reviewer model: ${config.value.reviewer.provider}/${config.value.reviewer.model}`
+				: `Agent Review config error: ${config.error}`,
+			config.ok ? 'info' : 'error',
+		);
+		return;
+	}
+
+	if (!config.ok) {
+		context.ui.notify(`Agent Review config error: ${config.error}`, 'error');
+		return;
+	}
+
+	const choice = await openModelPicker(context, config.value);
+	if (choice !== undefined) {
+		await applyModelSpec(context, choice);
+	}
+}
+
+async function applyModelSpec(context: ExtensionCommandContext, spec: string): Promise<void> {
+	const result = await setReviewerModel(configPath, spec);
+	if (result.ok) {
+		context.ui.notify(`Reviewer model set to ${result.value.reviewer.provider}/${result.value.reviewer.model}.`, 'info');
+	} else {
+		context.ui.notify(`Agent Review: ${result.error}`, 'error');
+	}
 }
 
 async function handleTest(context: ExtensionCommandContext, config: ConfigResult, raw: string): Promise<void> {

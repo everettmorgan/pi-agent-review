@@ -58,10 +58,23 @@ async function exists(filePath: string): Promise<boolean> {
 	}
 }
 
+// Copy only known fields from the (untrusted) parsed config, so legacy or
+// unexpected keys are dropped rather than carried through and later persisted.
 function mergeConfig(input: PartialConfig): AgentReviewConfig {
+	const review = input.review ?? {};
+	const reviewer = input.reviewer ?? {};
 	return {
-		review: {...defaultConfig.review, ...input.review, denyOnReviewerFailure: true},
-		reviewer: {...defaultConfig.reviewer, ...input.reviewer, type: 'direct-model'},
+		review: {
+			timeoutMs: review.timeoutMs ?? defaultConfig.review.timeoutMs,
+			denyOnReviewerFailure: true,
+			consecutiveDenialLimit: review.consecutiveDenialLimit ?? defaultConfig.review.consecutiveDenialLimit,
+			rollingDenialLimit: review.rollingDenialLimit ?? defaultConfig.review.rollingDenialLimit,
+		},
+		reviewer: {
+			type: 'direct-model',
+			provider: reviewer.provider ?? defaultConfig.reviewer.provider,
+			model: reviewer.model ?? defaultConfig.reviewer.model,
+		},
 	};
 }
 
@@ -127,16 +140,7 @@ export async function setReviewerModel(filePath: string, spec: string): Promise<
 
 	try {
 		await mkdir(path.dirname(filePath), {recursive: true});
-		const configToPersist = {
-			...next,
-			review: {
-				timeoutMs: next.review.timeoutMs,
-				denyOnReviewerFailure: next.review.denyOnReviewerFailure,
-				consecutiveDenialLimit: next.review.consecutiveDenialLimit,
-				rollingDenialLimit: next.review.rollingDenialLimit,
-			},
-		};
-		await writeFile(filePath, `${JSON.stringify(configToPersist, null, 2)}\n`, 'utf8');
+		await writeFile(filePath, `${JSON.stringify(next, null, 2)}\n`, 'utf8');
 		return {ok: true, value: next};
 	} catch (error: unknown) {
 		return {ok: false, error: `Failed to write config at ${filePath}: ${errorMessage(error)}`};
