@@ -19,15 +19,18 @@ import type {RuntimeState} from './runtime-state.ts';
 
 export function createToolCallHandler(pi: ExtensionAPI, state: RuntimeState, ledger: ApprovalLedger) {
 	return async (event: ToolCallEvent, context: ExtensionContext): Promise<ToolCallEventResult | undefined> => {
+		// The disabled-session and approval-tool paths must not depend on config
+		// parsing: a malformed config should never brick /agent-review off or the
+		// request_user_approval escape hatch that every denial message points to.
+		if (!state.reviewState.isReviewEnabled || event.toolName === approvalToolName) {
+			state.lastDecision = undefined;
+			return undefined;
+		}
+
 		const configResult = await loadConfigFromPath(configPath);
 		if (!configResult.ok) {
 			state.lastDecision = undefined;
 			return {block: true, reason: formatReviewerFailureReason(configResult.error)};
-		}
-
-		if (!state.reviewState.isReviewEnabled || event.toolName === approvalToolName) {
-			state.lastDecision = undefined;
-			return undefined;
 		}
 
 		const request = normalizeToolCall({toolName: event.toolName, input: event.input, cwd: context.cwd});
@@ -39,13 +42,12 @@ export function createToolCallHandler(pi: ExtensionAPI, state: RuntimeState, led
 			return {block: true, reason: `Agent Review blocked this tool call: ${gateResult.reason}`};
 		}
 
-		const approvalState = ledger.consume(argsHash)
-			? {status: 'approved_by_user' as const, argsHash}
-			: undefined;
-		if (approvalState !== undefined) {
-			pi.appendEntry(consumptionEntryType, {argsHash});
-		}
-
+		// Peek at the approval without consuming it: a one-shot approval must
+		// survive a transient reviewer failure or a reviewer denial so the agent
+		// can retry without asking the user to approve the same action again. It
+		// is consumed only once the reviewer terminally approves the call.
+		const hasApproval = ledger.hasPending(argsHash);
+		const approvalState = hasApproval ? {status: 'approved_by_user' as const, argsHash} : undefined;
 		const normalizedRequest = approvalState === undefined
 			? request
 			: normalizeToolCall({toolName: event.toolName, input: event.input, cwd: context.cwd}, {approval: approvalState, argsHash});
@@ -74,6 +76,11 @@ export function createToolCallHandler(pi: ExtensionAPI, state: RuntimeState, led
 			const base = formatDenialReason(review.value);
 			context.ui.notify(formatOutcome('Denied', event.toolName, review.value.rationale, review.cost, review.value.saferAlternative), 'warning');
 			return {block: true, reason: circuit.tripped ? `${base} ${circuit.reason ?? ''}` : `${base} Review cost: ${formatCost(review.cost)}.`};
+		}
+
+		if (hasApproval) {
+			ledger.consume(argsHash);
+			pi.appendEntry(consumptionEntryType, {argsHash});
 		}
 
 		state.tracker.recordApproved();

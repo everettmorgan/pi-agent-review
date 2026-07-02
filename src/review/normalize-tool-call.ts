@@ -37,7 +37,9 @@ export function truncateText(text: string, maxChars: number): string {
 export function neutralizeFence(text: string): string {
 	return text
 		.replaceAll('<untrusted_tool_call>', 'untrusted_tool_call')
-		.replaceAll('</untrusted_tool_call>', '/untrusted_tool_call');
+		.replaceAll('</untrusted_tool_call>', '/untrusted_tool_call')
+		.replaceAll('<untrusted_transcript>', 'untrusted_transcript')
+		.replaceAll('</untrusted_transcript>', '/untrusted_transcript');
 }
 
 export function normalizeToolCall(input: NormalizeToolCallInput, options: NormalizeOptions = {}): ReviewRequest {

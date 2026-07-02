@@ -25,10 +25,12 @@ export default function agentReview(pi: ExtensionAPI): void {
 		syncFromBranch(context.sessionManager.getBranch());
 	});
 
+	// The circuit breaker is scoped to a single turn (a runaway loop is a
+	// within-turn phenomenon), so it resets here. Session cost is cumulative and
+	// intentionally not reset.
 	pi.on('turn_start', async () => {
 		const config = await loadConfigFromPath(configPath);
 		state.tracker = new DenialTracker((config.ok ? config.value : defaultConfig).review);
-		state.sessionCost = 0;
 	});
 
 	registerApprovalTool(pi, ledger);

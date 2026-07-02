@@ -131,4 +131,35 @@ describe('createToolCallHandler', () => {
 		expect(result?.reason).toContain('reviewer approval failed');
 		expect(state.lastDecision).toMatchObject({decision: 'failure'});
 	});
+
+	it('does not burn a one-shot approval when the reviewer fails transiently', async () => {
+		performReviewMock.mockResolvedValue({ok: false, error: 'timeout', cost: 0});
+		const state = createRuntimeState();
+		const ledger = new ApprovalLedger();
+		const {pi, appendEntry} = makePi();
+		const event = makeEvent();
+		const argsHash = computeArgsHash(event.toolName, event.input, '/repo');
+		ledger.record({argsHash});
+		const handler = createToolCallHandler(pi, state, ledger);
+
+		await handler(event, makeContext().context);
+
+		// Approval survives so the agent can retry without re-prompting the user.
+		expect(ledger.hasPending(argsHash)).toBe(true);
+		expect(appendEntry).not.toHaveBeenCalled();
+	});
+
+	it('does not burn a one-shot approval when the reviewer denies', async () => {
+		performReviewMock.mockResolvedValue({ok: true, value: {decision: 'deny', rationale: 'still risky'}, cost: 0});
+		const state = createRuntimeState();
+		const ledger = new ApprovalLedger();
+		const event = makeEvent();
+		const argsHash = computeArgsHash(event.toolName, event.input, '/repo');
+		ledger.record({argsHash});
+		const handler = createToolCallHandler(makePi().pi, state, ledger);
+
+		await handler(event, makeContext().context);
+
+		expect(ledger.hasPending(argsHash)).toBe(true);
+	});
 });
