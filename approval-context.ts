@@ -1,4 +1,4 @@
-import {isRecord} from './guards.ts';
+import {extractText, unwrapMessage} from './branch-messages.ts';
 import {neutralizeFence, truncateText} from './normalize-tool-call.ts';
 
 export type TrustedIntentContext = {
@@ -15,53 +15,6 @@ const defaultOptions: TrustedIntentOptions = {
 	maxItems: 8,
 	maxCharsPerItem: 1000,
 };
-
-type MessageLike = {
-	role?: unknown;
-	toolName?: unknown;
-	content?: unknown;
-};
-
-function unwrapMessage(entry: unknown): MessageLike {
-	if (!isRecord(entry)) {
-		return {};
-	}
-
-	if (entry.type === 'message' && isRecord(entry.message)) {
-		return {
-			role: entry.message.role,
-			toolName: entry.message.toolName,
-			content: entry.message.content,
-		};
-	}
-
-	return {
-		role: entry.role,
-		toolName: entry.toolName,
-		content: entry.content,
-	};
-}
-
-function extractText(content: unknown): string {
-	if (typeof content === 'string') {
-		return content;
-	}
-
-	if (!Array.isArray(content)) {
-		return '';
-	}
-
-	return content
-		.map(part => {
-			if (!isRecord(part)) {
-				return '';
-			}
-
-			return part.type === 'text' && typeof part.text === 'string' ? part.text : '';
-		})
-		.filter(Boolean)
-		.join('\n');
-}
 
 function cleanTrustedText(text: string, maxChars: number): string {
 	return truncateText(neutralizeFence(text.trim()), maxChars);
