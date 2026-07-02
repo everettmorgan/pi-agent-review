@@ -1,6 +1,6 @@
 import {createHash} from 'node:crypto';
 import {stringify} from 'safe-stable-stringify';
-import {isCustomEntry, isRecord} from './guards.ts';
+import {isCustomEntry, isRecord} from '../shared/guards.ts';
 
 export const approvalEntryType = 'agent-review-approval';
 export const consumptionEntryType = 'agent-review-consumption';

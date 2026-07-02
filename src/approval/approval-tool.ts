@@ -2,7 +2,7 @@ import type {ExtensionAPI} from '@earendil-works/pi-coding-agent';
 import {stringify} from 'safe-stable-stringify';
 import {Type} from 'typebox';
 import {approvalEntryType, computeArgsHash, type ApprovalLedger} from './approval-ledger.ts';
-import {truncateText} from './normalize-tool-call.ts';
+import {truncateText} from '../review/normalize-tool-call.ts';
 
 export const approvalToolName = 'request_user_approval';
 

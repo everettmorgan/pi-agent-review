@@ -4,17 +4,17 @@ import type {
 	ToolCallEvent,
 	ToolCallEventResult,
 } from '@earendil-works/pi-coding-agent';
-import {classifyToolCall} from './approval-gate.ts';
+import {classifyToolCall} from './approval/approval-gate.ts';
 import {
 	computeArgsHash,
 	consumptionEntryType,
 	type ApprovalLedger,
-} from './approval-ledger.ts';
-import {approvalToolName} from './approval-tool.ts';
+} from './approval/approval-ledger.ts';
+import {approvalToolName} from './approval/approval-tool.ts';
 import {configPath, loadConfigFromPath} from './config.ts';
-import {normalizeToolCall} from './normalize-tool-call.ts';
-import {formatDenialReason, formatReviewerFailureReason} from './review-decision.ts';
-import {formatCost, formatOutcome, performReview} from './run-review.ts';
+import {normalizeToolCall} from './review/normalize-tool-call.ts';
+import {formatDenialReason, formatReviewerFailureReason} from './review/review-decision.ts';
+import {formatCost, formatOutcome, performReview} from './review/run-review.ts';
 import type {RuntimeState} from './runtime-state.ts';
 
 export function createToolCallHandler(pi: ExtensionAPI, state: RuntimeState, ledger: ApprovalLedger) {

@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {defaultSessionReviewState, getReviewStateFromBranch, makeReviewStateEntryData} from '../session-state.ts';
+import {defaultSessionReviewState, getReviewStateFromBranch, makeReviewStateEntryData} from '../src/session-state.ts';
 
 describe('session review state', () => {
 	it('defaults review to enabled without session state', () => {

@@ -8,8 +8,8 @@ import {
 } from '@earendil-works/pi-ai';
 import {complete} from '@earendil-works/pi-ai/compat';
 import {Type} from 'typebox';
-import type {AgentReviewConfig} from './config.ts';
-import {errorMessage} from './guards.ts';
+import type {AgentReviewConfig} from '../config.ts';
+import {errorMessage} from '../shared/guards.ts';
 import type {ReviewRequest} from './normalize-tool-call.ts';
 import {parseReviewDecision, validateDecision, type ReviewDecision} from './review-decision.ts';
 import {forcedToolChoice} from './tool-support.ts';

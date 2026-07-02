@@ -1,6 +1,6 @@
 import type {ExtensionAPI} from '@earendil-works/pi-coding-agent';
-import {ApprovalLedger} from './approval-ledger.ts';
-import {registerApprovalTool} from './approval-tool.ts';
+import {ApprovalLedger} from './approval/approval-ledger.ts';
+import {registerApprovalTool} from './approval/approval-tool.ts';
 import {createAgentReviewCommand} from './command.ts';
 import {configPath, defaultConfig, loadConfigFromPath} from './config.ts';
 import {DenialTracker} from './denial-tracker.ts';

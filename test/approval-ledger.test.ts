@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {ApprovalLedger, computeArgsHash} from '../approval-ledger.ts';
+import {ApprovalLedger, computeArgsHash} from '../src/approval/approval-ledger.ts';
 
 describe('computeArgsHash', () => {
 	it('produces stable hashes for the same input', () => {

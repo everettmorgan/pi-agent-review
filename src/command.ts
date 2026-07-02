@@ -10,9 +10,9 @@ import {
 	type ConfigResult,
 } from './config.ts';
 import {openModelPicker} from './model-picker.ts';
-import {computeArgsHash} from './approval-ledger.ts';
-import {normalizeToolCall} from './normalize-tool-call.ts';
-import {formatCost, formatOutcome, performReview} from './run-review.ts';
+import {computeArgsHash} from './approval/approval-ledger.ts';
+import {normalizeToolCall} from './review/normalize-tool-call.ts';
+import {formatCost, formatOutcome, performReview} from './review/run-review.ts';
 import type {RuntimeState} from './runtime-state.ts';
 import {agentReviewStateEntryType, makeReviewStateEntryData} from './session-state.ts';
 

@@ -4,7 +4,7 @@ import {
 	createTimeoutSignal,
 	extractTextResponse,
 	systemPrompt,
-} from '../reviewer.ts';
+} from '../src/review/reviewer.ts';
 
 describe('extractTextResponse', () => {
 	it('joins text parts from a model response', () => {

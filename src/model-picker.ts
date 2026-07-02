@@ -7,7 +7,7 @@ import {
 	Text,
 } from '@earendil-works/pi-tui';
 import type {AgentReviewConfig} from './config.ts';
-import {isModelSupportingTools} from './tool-support.ts';
+import {isModelSupportingTools} from './review/tool-support.ts';
 
 type ModelItem = {
 	value: string;

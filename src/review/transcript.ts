@@ -1,4 +1,4 @@
-import {extractText, unwrapMessage} from './branch-messages.ts';
+import {extractText, unwrapMessage} from '../shared/branch-messages.ts';
 import {neutralizeFence, truncateText} from './normalize-tool-call.ts';
 
 export type TranscriptOptions = {

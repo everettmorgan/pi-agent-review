@@ -1,4 +1,4 @@
-import {errorMessage, isRecord} from './guards.ts';
+import {errorMessage, isRecord} from '../shared/guards.ts';
 
 export type ReviewDecision = {
 	decision: 'approve' | 'deny';

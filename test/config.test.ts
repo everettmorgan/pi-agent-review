@@ -6,7 +6,7 @@ import {
 	defaultConfig,
 	loadConfigFromPath,
 	setReviewerModel,
-} from '../config.ts';
+} from '../src/config.ts';
 
 describe('loadConfigFromPath', () => {
 	it('returns defaults when the config file is missing', async () => {

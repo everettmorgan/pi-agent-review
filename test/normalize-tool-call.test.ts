@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {normalizeToolCall, neutralizeFence, truncateText} from '../normalize-tool-call.ts';
+import {normalizeToolCall, neutralizeFence, truncateText} from '../src/review/normalize-tool-call.ts';
 
 describe('normalizeToolCall', () => {
 	it('captures built-in tool name and input', () => {

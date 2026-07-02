@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {classifyToolCall} from '../approval-gate.ts';
+import {classifyToolCall} from '../src/approval/approval-gate.ts';
 
 describe('classifyToolCall', () => {
 	it('allows read-only tools', () => {

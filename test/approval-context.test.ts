@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {buildTrustedIntentContext, formatTrustedIntentContext} from '../approval-context.ts';
+import {buildTrustedIntentContext, formatTrustedIntentContext} from '../src/review/approval-context.ts';
 
 describe('buildTrustedIntentContext', () => {
 	it('includes recent direct user messages as trusted intent', () => {

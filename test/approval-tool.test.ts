@@ -5,8 +5,8 @@ import {
 	it,
 	vi,
 } from 'vitest';
-import {ApprovalLedger, computeArgsHash} from '../approval-ledger.ts';
-import {approvalToolName, registerApprovalTool} from '../approval-tool.ts';
+import {ApprovalLedger, computeArgsHash} from '../src/approval/approval-ledger.ts';
+import {approvalToolName, registerApprovalTool} from '../src/approval/approval-tool.ts';
 
 function setup() {
 	const ledger = new ApprovalLedger();

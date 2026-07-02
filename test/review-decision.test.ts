@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {formatDenialReason, parseReviewDecision} from '../review-decision.ts';
+import {formatDenialReason, parseReviewDecision} from '../src/review/review-decision.ts';
 
 describe('parseReviewDecision', () => {
 	it('accepts strict approve JSON', () => {

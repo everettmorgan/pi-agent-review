@@ -1,4 +1,4 @@
-import {isCustomEntry, isRecord} from './guards.ts';
+import {isCustomEntry, isRecord} from './shared/guards.ts';
 
 export const agentReviewStateEntryType = 'agent-review-state';
 

@@ -6,16 +6,16 @@ import {
 	it,
 	vi,
 } from 'vitest';
-import {ApprovalLedger, computeArgsHash} from '../approval-ledger.ts';
-import {approvalToolName} from '../approval-tool.ts';
-import type {ReviewRequest} from '../normalize-tool-call.ts';
-import type * as RunReview from '../run-review.ts';
-import {createRuntimeState} from '../runtime-state.ts';
-import {createToolCallHandler} from '../tool-call-handler.ts';
+import {ApprovalLedger, computeArgsHash} from '../src/approval/approval-ledger.ts';
+import {approvalToolName} from '../src/approval/approval-tool.ts';
+import type {ReviewRequest} from '../src/review/normalize-tool-call.ts';
+import type * as RunReview from '../src/review/run-review.ts';
+import {createRuntimeState} from '../src/runtime-state.ts';
+import {createToolCallHandler} from '../src/tool-call-handler.ts';
 
 const {performReviewMock} = vi.hoisted(() => ({performReviewMock: vi.fn()}));
 
-vi.mock('../run-review.ts', async importOriginal => ({
+vi.mock('../src/review/run-review.ts', async importOriginal => ({
 	...(await importOriginal<typeof RunReview>()),
 	performReview: performReviewMock,
 }));

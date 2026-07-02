@@ -6,7 +6,7 @@ import {
 } from 'node:fs/promises';
 import {homedir} from 'node:os';
 import path from 'node:path';
-import {errorMessage} from './guards.ts';
+import {errorMessage} from './shared/guards.ts';
 
 export type ReviewConfig = {
 	timeoutMs: number;

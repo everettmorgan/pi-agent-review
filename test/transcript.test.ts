@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {compactTranscript} from '../transcript.ts';
+import {compactTranscript} from '../src/review/transcript.ts';
 
 type FakeSessionManager = {
 	getBranch(): unknown[];

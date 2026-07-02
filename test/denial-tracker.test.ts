@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {DenialTracker} from '../denial-tracker.ts';
+import {DenialTracker} from '../src/denial-tracker.ts';
 
 describe('DenialTracker', () => {
 	it('trips after consecutive denials', () => {
