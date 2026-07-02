@@ -13,6 +13,11 @@ export function registerApprovalTool(pi: ExtensionAPI, ledger: ApprovalLedger): 
 		name: approvalToolName,
 		label: 'Request user approval',
 		description: 'Ask the user to confirm a tool call that Agent Review denied. Pass the exact tool name and input you intend to run, unchanged. If the user approves, retry the identical tool call.',
+		promptSnippet: 'request_user_approval: ask the user to confirm a tool call that Agent Review denied',
+		promptGuidelines: [
+			'When Agent Review denies a tool call the user appears to want, call request_user_approval with the exact tool name and input you intended to run, then retry the identical call after the user approves.',
+			'Approvals are one-shot and match only the exact same tool name and input; do not alter the call between approval and retry.',
+		],
 		parameters: Type.Object({
 			toolName: Type.String({description: 'The exact tool name you intend to run.'}),
 			input: Type.Unknown({description: 'The exact input object for the tool call, unchanged.'}),
