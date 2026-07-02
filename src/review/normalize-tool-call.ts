@@ -39,7 +39,9 @@ export function neutralizeFence(text: string): string {
 		.replaceAll('<untrusted_tool_call>', 'untrusted_tool_call')
 		.replaceAll('</untrusted_tool_call>', '/untrusted_tool_call')
 		.replaceAll('<untrusted_transcript>', 'untrusted_transcript')
-		.replaceAll('</untrusted_transcript>', '/untrusted_transcript');
+		.replaceAll('</untrusted_transcript>', '/untrusted_transcript')
+		.replaceAll('<untrusted_tool_output>', 'untrusted_tool_output')
+		.replaceAll('</untrusted_tool_output>', '/untrusted_tool_output');
 }
 
 export function normalizeToolCall(input: NormalizeToolCallInput, options: NormalizeOptions = {}): ReviewRequest {

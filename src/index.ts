@@ -7,6 +7,7 @@ import {DenialTracker} from './denial-tracker.ts';
 import {createRuntimeState} from './runtime-state.ts';
 import {getReviewStateFromBranch} from './session-state.ts';
 import {createToolCallHandler} from './tool-call-handler.ts';
+import {createToolResultHandler} from './tool-result-handler.ts';
 
 export default function agentReview(pi: ExtensionAPI): void {
 	const state = createRuntimeState();
@@ -35,6 +36,7 @@ export default function agentReview(pi: ExtensionAPI): void {
 
 	registerApprovalTool(pi, ledger);
 	pi.on('tool_call', createToolCallHandler(pi, state, ledger));
+	pi.on('tool_result', createToolResultHandler(state));
 
 	pi.registerCommand('agent-review', createAgentReviewCommand(pi, state));
 }
