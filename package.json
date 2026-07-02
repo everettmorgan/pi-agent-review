@@ -1,0 +1,33 @@
+{
+  "name": "pi-agent-review",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "lint": "xo",
+    "lint:fix": "xo --fix"
+  },
+  "dependencies": {
+    "@earendil-works/pi-ai": "*",
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*",
+    "safe-stable-stringify": "^2.5.0",
+    "typebox": "*"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.6.0",
+    "eslint-plugin-unicorn": "^69.0.0",
+    "typescript": "^5.0.0",
+    "typescript-eslint": "^8.62.0",
+    "vitest": "^3.0.0",
+    "xo": "^3.0.2"
+  },
+  "pi": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}
