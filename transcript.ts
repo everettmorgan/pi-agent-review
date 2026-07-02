@@ -21,7 +21,7 @@ function formatEntry(entry: unknown): string | undefined {
 		return undefined;
 	}
 
-	return `${String(message.role)}: ${text}`;
+	return `${message.role}: ${text}`;
 }
 
 export function compactTranscript(sessionManager: SessionManagerLike, options: TranscriptOptions): string {
