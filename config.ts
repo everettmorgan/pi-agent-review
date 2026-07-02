@@ -9,7 +9,6 @@ import path from 'node:path';
 import {errorMessage} from './guards.ts';
 
 export type ReviewConfig = {
-	isReviewEnabled: boolean;
 	timeoutMs: number;
 	denyOnReviewerFailure: true;
 	consecutiveDenialLimit: number;
@@ -33,7 +32,6 @@ export const configPath = path.join(homedir(), '.pi', 'agent', 'agent-review', '
 
 export const defaultConfig: AgentReviewConfig = {
 	review: {
-		isReviewEnabled: true,
 		timeoutMs: 30_000,
 		denyOnReviewerFailure: true,
 		consecutiveDenialLimit: 3,
@@ -73,8 +71,7 @@ function validatePositiveInteger(value: number, fieldPath: string): string | und
 
 function validateConfig(config: AgentReviewConfig): string | undefined {
 	return (
-		(typeof config.review.isReviewEnabled === 'boolean' ? undefined : 'review.isReviewEnabled must be a boolean')
-		?? validatePositiveInteger(config.review.timeoutMs, 'review.timeoutMs')
+		validatePositiveInteger(config.review.timeoutMs, 'review.timeoutMs')
 		?? validatePositiveInteger(config.review.consecutiveDenialLimit, 'review.consecutiveDenialLimit')
 		?? validatePositiveInteger(config.review.rollingDenialLimit, 'review.rollingDenialLimit')
 	);

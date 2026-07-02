@@ -78,7 +78,7 @@ General: approve routine low-risk reads; deny anything unsafe, disproportionate,
 export function buildUserMessage(request: ReviewRequest, trustedIntent: string, transcript: string): Message {
 	const approvalSection = request.approval === undefined
 		? ''
-		: `\nApproval status: ${request.approval.status}${request.approval.status === 'approved_by_user' ? ` (Exact-action match, argsHash: ${request.approval.argsHash})` : ''}\n`;
+		: `\nApproval status: ${request.approval.status} (Exact-action match, argsHash: ${request.approval.argsHash})\n`;
 
 	return {
 		role: 'user',

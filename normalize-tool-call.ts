@@ -9,8 +9,6 @@ export type NormalizeToolCallInput = {
 export type ApprovalState = {
 	status: 'approved_by_user';
 	argsHash: string;
-} | {
-	status: 'not_required';
 };
 
 export type NormalizeOptions = {
@@ -54,7 +52,7 @@ export function normalizeToolCall(input: NormalizeToolCallInput, options: Normal
 		request.approval = options.approval;
 	}
 
-	const argsHash = options.argsHash ?? (options.approval !== undefined && 'argsHash' in options.approval ? options.approval.argsHash : undefined);
+	const argsHash = options.argsHash ?? options.approval?.argsHash;
 	if (argsHash !== undefined) {
 		request.argsHash = argsHash;
 	}

@@ -25,7 +25,6 @@ describe('loadConfigFromPath', () => {
 
 		expect(result.ok).toBe(true);
 		if (result.ok) {
-			expect(result.value.review.isReviewEnabled).toBe(true);
 			expect(result.value.review.timeoutMs).toBe(1000);
 		}
 	});
@@ -38,9 +37,6 @@ describe('loadConfigFromPath', () => {
 		const result = await loadConfigFromPath(filePath);
 
 		expect(result.ok).toBe(true);
-		if (result.ok) {
-			expect(result.value.review.isReviewEnabled).toBe(false);
-		}
 	});
 
 	it('fails closed for invalid config', async () => {
