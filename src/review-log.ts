@@ -42,13 +42,23 @@ export function postReviewMessage(pi: ExtensionAPI, state: RuntimeState, context
 		state.reviewTally.blocked += 1;
 	}
 
-	if (context.hasUI) {
-		context.ui.setStatus(statusKey, `review ✓${String(state.reviewTally.passed)} ✗${String(state.reviewTally.blocked)} ${formatCost(state.sessionCost)}`);
-	}
+	updateReviewStatus(context, state);
 }
 
-export function showReviewDisabledStatus(context: StatusContext, isEnabled: boolean): void {
+function statusText(state: RuntimeState): string {
+	if (!state.isReviewEnabled) {
+		return 'review off';
+	}
+
+	if (state.reviewTally.passed === 0 && state.reviewTally.blocked === 0) {
+		return 'review on';
+	}
+
+	return `review ✓${String(state.reviewTally.passed)} ✗${String(state.reviewTally.blocked)} ${formatCost(state.sessionCost)}`;
+}
+
+export function updateReviewStatus(context: StatusContext, state: RuntimeState): void {
 	if (context.hasUI) {
-		context.ui.setStatus(statusKey, isEnabled ? undefined : 'review off');
+		context.ui.setStatus(statusKey, statusText(state));
 	}
 }

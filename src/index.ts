@@ -4,7 +4,7 @@ import {registerApprovalTool} from './approval/approval-tool.ts';
 import {createAgentReviewCommand} from './command.ts';
 import {configPath, defaultConfig, loadConfigFromPath} from './config.ts';
 import {DenialTracker} from './denial-tracker.ts';
-import {registerReviewLog} from './review-log.ts';
+import {registerReviewLog, updateReviewStatus} from './review-log.ts';
 import {createRuntimeState} from './runtime-state.ts';
 import {createToolCallHandler} from './tool-call-handler.ts';
 import {createToolResultHandler} from './tool-result-handler.ts';
@@ -19,6 +19,7 @@ export default function agentReview(pi: ExtensionAPI): void {
 		}
 
 		ledger.restoreFromBranch(context.sessionManager.getBranch());
+		updateReviewStatus(context, state);
 	});
 
 	pi.on('session_tree', (event, context) => {

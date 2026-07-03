@@ -72,10 +72,10 @@ forks for the life of the process, and never override hard-safety denials.
 **Logging.** Every review posts a message into the chat with the full verdict
 and reasoning. The reasoning is display-only; the model sees just a terse
 one-line summary (for example `Agent Review: Approved: bash`). A footer status
-segment keeps a running tally of outcomes and session cost
-(`review ✓12 ✗2 $0.43`) and shows `review off` while the session toggle is
-off. The latest request/output assessments are also shown by
-`/agent-review status`.
+segment always shows the review state: `review on` before any reviews run, a
+running tally with session cost once they do (`review ✓12 ✗2 $0.43`), and
+`review off` while the session toggle is off. The latest request/output
+assessments are also shown by `/agent-review status`.
 
 ## Config
 

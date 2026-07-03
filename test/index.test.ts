@@ -53,11 +53,14 @@ function setup() {
 
 function commandContext() {
 	const notify = vi.fn();
+	const setStatus = vi.fn();
 	// eslint-disable-next-line @typescript-eslint/naming-convention
-	return {context: {hasUI: true, ui: {notify, setStatus: vi.fn()}} as unknown as ExtensionCommandContext, notify};
+	return {context: {hasUI: true, ui: {notify, setStatus}} as unknown as ExtensionCommandContext, notify, setStatus};
 }
 
-const sessionContext = {sessionManager: {getBranch: () => []}} as unknown as ExtensionContext;
+const sessionStatus = vi.fn();
+// eslint-disable-next-line @typescript-eslint/naming-convention
+const sessionContext = {hasUI: true, ui: {setStatus: sessionStatus}, sessionManager: {getBranch: () => []}} as unknown as ExtensionContext;
 
 const toolContext = {
 	// eslint-disable-next-line @typescript-eslint/naming-convention
@@ -104,6 +107,18 @@ describe('agentReview wiring', () => {
 	it('review is armed by default: the hard gate blocks a secret read', async () => {
 		const {handlers} = setup();
 		expect(await fireToolCall(handlers)).toMatchObject({block: true});
+	});
+
+	it('shows a persistent footer indicator: review on at session start, review off after toggling', async () => {
+		const {handlers, command} = setup();
+		sessionStatus.mockClear();
+
+		await fireSessionStart(handlers, 'startup');
+		expect(sessionStatus).toHaveBeenCalledWith('agent-review', 'review on');
+
+		const off = commandContext();
+		await command.handler('off', off.context);
+		expect(off.setStatus).toHaveBeenCalledWith('agent-review', 'review off');
 	});
 
 	it('off disables review across forks and re-arms on a new session', async () => {
