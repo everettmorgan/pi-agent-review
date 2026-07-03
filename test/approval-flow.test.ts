@@ -38,6 +38,7 @@ function setup() {
 	let tool: ToolDefinition | undefined;
 	const pi = {
 		appendEntry,
+		sendMessage: vi.fn(),
 		registerTool(definition: ToolDefinition) {
 			tool = definition;
 		},

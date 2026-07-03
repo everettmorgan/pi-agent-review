@@ -38,6 +38,8 @@ function setup() {
 			command = definition;
 		}),
 		appendEntry: vi.fn(),
+		sendMessage: vi.fn(),
+		registerMessageRenderer: vi.fn(),
 	} as unknown as ExtensionAPI;
 	agentReview(pi);
 	if (command === undefined || tool === undefined) {
@@ -96,6 +98,7 @@ describe('agentReview wiring', () => {
 		// eslint-disable-next-line unicorn/prefer-iterator-to-array
 		expect([...handlers.keys()].toSorted()).toEqual(['session_start', 'session_tree', 'tool_call', 'tool_result', 'turn_start']);
 		expect(pi.registerCommand).toHaveBeenCalledWith('agent-review', expect.anything());
+		expect(pi.registerMessageRenderer).toHaveBeenCalledWith('agent-review-log', expect.any(Function));
 	});
 
 	it('review is armed by default: the hard gate blocks a secret read', async () => {

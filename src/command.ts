@@ -194,7 +194,7 @@ function renderStatus(state: RuntimeState, ledger: ApprovalLedger, config: Confi
 			'',
 			'Last output review:',
 			`Tool: ${lastOutputReview.toolName}`,
-			`Verdict: ${lastOutputReview.containsSensitive ? `blocked — sensitive data${categories}` : 'cleared'}`,
+			`Verdict: ${lastOutputReview.containsSensitive ? `blocked, sensitive data${categories}` : 'cleared'}`,
 			`Reasoning: ${lastOutputReview.rationale}`,
 			`Cost: ${formatCost(lastOutputReview.cost)}`,
 		);

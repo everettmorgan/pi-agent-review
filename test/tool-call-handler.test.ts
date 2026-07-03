@@ -30,7 +30,8 @@ vi.mock('../src/config.ts', async importOriginal => ({
 
 function makePi() {
 	const appendEntry = vi.fn();
-	return {pi: {appendEntry} as unknown as ExtensionAPI, appendEntry};
+	const sendMessage = vi.fn();
+	return {pi: {appendEntry, sendMessage} as unknown as ExtensionAPI, appendEntry, sendMessage};
 }
 
 function makeContext() {
@@ -103,18 +104,22 @@ describe('createToolCallHandler', () => {
 		expect(performReviewMock).not.toHaveBeenCalled();
 	});
 
-	it('allows a reviewer-approved call, records the decision, and logs it', async () => {
-		performReviewMock.mockResolvedValue({ok: true, value: {decision: 'approve', rationale: 'safe'}, cost: 0.01});
+	it('allows a reviewer-approved call, records the decision, and posts a chat message with reasoning in details only', async () => {
+		performReviewMock.mockResolvedValue({ok: true, value: {decision: 'approve', rationale: 'safe and scoped'}, cost: 0.01});
 		const state = createRuntimeState();
-		const {pi, appendEntry} = makePi();
+		const {pi, sendMessage} = makePi();
 		const handler = createToolCallHandler(pi, state, new ApprovalLedger());
 
 		const result = await handler(makeEvent(), makeContext().context);
 
 		expect(result).toBeUndefined();
 		expect(state.lastDecision).toMatchObject({decision: 'approve', toolName: 'bash'});
-		const logged = appendEntry.mock.calls.find(([type]) => type === 'agent-review-log');
-		expect((logged?.[1] as {message: string} | undefined)?.message).toContain('Approved: bash');
+		const [message] = sendMessage.mock.calls[0] as [{customType: string; content: string; display: boolean; details: {message: string}}];
+		expect(message.customType).toBe('agent-review-log');
+		expect(message.display).toBe(true);
+		expect(message.content).toBe('Agent Review: Approved: bash');
+		expect(message.content).not.toContain('safe and scoped');
+		expect(message.details.message).toContain('safe and scoped');
 	});
 
 	it('blocks a reviewer-denied call with request_user_approval guidance', async () => {

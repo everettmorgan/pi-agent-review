@@ -7,7 +7,7 @@ type UiContext = {
 	ui: {select(title: string, options: string[]): Promise<string | undefined>};
 };
 
-const currentOption = 'current — use the active session model';
+const currentOption = 'current (use the active session model)';
 
 export async function openModelPicker(context: UiContext, config: AgentReviewConfig): Promise<string | undefined> {
 	const specs = context.modelRegistry

@@ -8,8 +8,8 @@ const doneOption = 'Done';
 
 function toggleOptions(scope: Required<ReviewScope>): string[] {
 	return [
-		`Review tool inputs: ${scope.reviewInput ? 'on' : 'off'} — toggle`,
-		`Review tool outputs: ${scope.reviewOutput ? 'on' : 'off'} — toggle`,
+		`Review tool inputs: ${scope.reviewInput ? 'on' : 'off'} (press enter to toggle)`,
+		`Review tool outputs: ${scope.reviewOutput ? 'on' : 'off'} (press enter to toggle)`,
 		doneOption,
 	];
 }

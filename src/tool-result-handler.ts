@@ -7,7 +7,7 @@ import {approvalToolName} from './approval/approval-tool.ts';
 import {configPath, loadConfigFromPath} from './config.ts';
 import {reviewOutput} from './review/output-reviewer.ts';
 import {formatCost} from './review/run-review.ts';
-import {appendReviewLog} from './review-log.ts';
+import {postReviewMessage} from './review-log.ts';
 import type {RuntimeState} from './runtime-state.ts';
 import {joinPartsForReview} from './shared/content.ts';
 
@@ -26,7 +26,11 @@ export function createToolResultHandler(pi: ExtensionAPI, state: RuntimeState) {
 
 		const config = await loadConfigFromPath(configPath);
 		if (!config.ok) {
-			appendReviewLog(pi, state, context, 'block', `Output review — withheld ${event.toolName}: configuration is invalid (${config.error}).`);
+			postReviewMessage(pi, state, context, {
+				kind: 'block',
+				summary: `Output withheld: ${event.toolName}`,
+				detail: `Output review withheld ${event.toolName}: configuration is invalid (${config.error}).`,
+			});
 			return withheldResult(`configuration is invalid (${config.error})`);
 		}
 
@@ -38,7 +42,11 @@ export function createToolResultHandler(pi: ExtensionAPI, state: RuntimeState) {
 		state.sessionCost += review.cost;
 
 		if (!review.ok) {
-			appendReviewLog(pi, state, context, 'block', `Output review — withheld ${event.toolName}: could not inspect (${review.error}). Cost: ${formatCost(review.cost)}`);
+			postReviewMessage(pi, state, context, {
+				kind: 'block',
+				summary: `Output withheld: ${event.toolName}`,
+				detail: `Output review withheld ${event.toolName}: could not inspect (${review.error}). Cost: ${formatCost(review.cost)}`,
+			});
 			return withheldResult(`it could not be inspected (${review.error})`);
 		}
 
@@ -53,19 +61,20 @@ export function createToolResultHandler(pi: ExtensionAPI, state: RuntimeState) {
 		const labels = review.value.categories.length > 0 ? ` [${review.value.categories.join(', ')}]` : '';
 
 		if (review.value.containsSensitive) {
-			appendReviewLog(pi, state, context, 'block', `Output review — blocked ${event.toolName}: sensitive data detected${labels}: ${review.value.rationale} Cost: ${formatCost(review.cost)}`);
+			postReviewMessage(pi, state, context, {
+				kind: 'block',
+				summary: `Output blocked: ${event.toolName}`,
+				detail: `Output review blocked ${event.toolName}: sensitive data detected${labels}: ${review.value.rationale} Cost: ${formatCost(review.cost)}`,
+			});
 			context.abort();
-			return {
-				isError: true,
-				content: [{
-					type: 'text',
-					text: `Agent Review blocked this tool output because it appears to contain sensitive information${labels}: ${review.value.rationale}
-Execution has been stopped. Do not attempt to retrieve or transmit this data.`,
-				}],
-			};
+			return blockedResult(labels, review.value.rationale);
 		}
 
-		appendReviewLog(pi, state, context, 'pass', `Output review — cleared ${event.toolName}: ${review.value.rationale} Cost: ${formatCost(review.cost)}`);
+		postReviewMessage(pi, state, context, {
+			kind: 'pass',
+			summary: `Output cleared: ${event.toolName}`,
+			detail: `Output review cleared ${event.toolName}: ${review.value.rationale} Cost: ${formatCost(review.cost)}`,
+		});
 		return undefined;
 	};
 }
@@ -74,5 +83,16 @@ function withheldResult(reason: string): WithheldResult {
 	return {
 		isError: true,
 		content: [{type: 'text', text: `Agent Review withheld this tool output because ${reason}. The output was not exposed.`}],
+	};
+}
+
+function blockedResult(labels: string, rationale: string): WithheldResult {
+	return {
+		isError: true,
+		content: [{
+			type: 'text',
+			text: `Agent Review blocked this tool output because it appears to contain sensitive information${labels}: ${rationale}
+Execution has been stopped. Do not attempt to retrieve or transmit this data.`,
+		}],
 	};
 }
