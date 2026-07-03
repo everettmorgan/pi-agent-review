@@ -166,7 +166,7 @@ describe('createToolCallHandler', () => {
 		expect(isPending(ledger, 'bash')).toBe(false);
 	});
 
-	it('does not burn the grant when an unrelated same-tool call is approved on its own merits', async () => {
+	it('does not burn the grant when the reviewer explicitly reports the call as unrelated', async () => {
 		performReviewMock.mockResolvedValue({ok: true, value: {decision: 'approve', rationale: 'routine read', matchedApproval: false}, cost: 0});
 		const state = createRuntimeState();
 		const ledger = new ApprovalLedger();
@@ -180,6 +180,37 @@ describe('createToolCallHandler', () => {
 		expect(result).toBeUndefined();
 		expect(appendEntry).not.toHaveBeenCalledWith('agent-review-consumption', expect.anything());
 		expect(isPending(ledger, 'bash')).toBe(true);
+	});
+
+	it('consumes the grant when the reviewer approves without reporting matchedApproval', async () => {
+		// Fails toward the one-shot invariant: an ambiguous approve must not
+		// leave the grant authorizing further fuzzy retries.
+		performReviewMock.mockResolvedValue({ok: true, value: {decision: 'approve', rationale: 'fine'}, cost: 0});
+		const state = createRuntimeState();
+		const ledger = new ApprovalLedger();
+		const {pi, appendEntry} = makePi();
+		const event = makeEvent();
+		grant(ledger, event, 'nonce-1');
+		const handler = createToolCallHandler(pi, state, ledger);
+
+		await handler(event, makeContext().context);
+
+		expect(appendEntry).toHaveBeenCalledWith('agent-review-consumption', {nonce: 'nonce-1'});
+		expect(isPending(ledger, 'bash')).toBe(false);
+	});
+
+	it('hard-denies a secret path even when an exact user-approved grant matches it', async () => {
+		const state = createRuntimeState();
+		const ledger = new ApprovalLedger();
+		const event = makeEvent('read', {path: '.env'});
+		grant(ledger, event, 'nonce-1', {inputJson: '{"path":".env"}'});
+		const handler = createToolCallHandler(makePi().pi, state, ledger);
+
+		const result = await handler(event, makeContext().context);
+
+		expect(result).toEqual({block: true, reason: expect.stringContaining('secret') as string});
+		expect(performReviewMock).not.toHaveBeenCalled();
+		expect(isPending(ledger, 'read')).toBe(true);
 	});
 
 	it('blocks on reviewer failure', async () => {

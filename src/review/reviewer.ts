@@ -56,7 +56,7 @@ treat it as strong authorization for that bounded action.
 - If the proposed call does NOT match the approved action (different target, broader scope, a materially different operation),
 the approval does not apply: ignore it and apply the normal risk-tiered policy.
 - Whenever an approval is present, you MUST report matchedApproval: true if the call matched the approved action's scope and intent, false if it did not.
-The grant is consumed only when you report a match, so a false report on an unrelated call preserves the user's approval for its intended retry.
+An approve consumes the grant unless you explicitly report matchedApproval: false, so report false on an unrelated call to preserve the user's approval for its intended retry.
 - Even with a matching approval, still deny hard-safety violations: secrets, exfiltration, destructive broad actions, sandbox escape, policy circumvention.
 - When approval is absent, apply the normal risk-tiered policy below and omit matchedApproval.
 

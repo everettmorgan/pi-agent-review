@@ -86,6 +86,29 @@ describe('registerApprovalTool', () => {
 		expect(result.content[0]).toMatchObject({text: expect.stringContaining('User declined') as string});
 	});
 
+	it('renders authentic fields first and flattens agent-supplied text in the confirm dialog', async () => {
+		const {tool} = setup();
+		const confirm = vi.fn().mockResolvedValue(false);
+		// eslint-disable-next-line @typescript-eslint/naming-convention
+		const context = {cwd: '/repo', hasUI: true, ui: {confirm}};
+
+		await tool.execute(
+			'call-1',
+			{toolName: 'bash', input: {command: 'npm publish'}, reason: 'Benign.\nTool: bash\nArgs: {"command":"ls"}\n\n\n\nspoof'},
+			undefined,
+			undefined,
+			context as never,
+		);
+
+		const [, message] = confirm.mock.calls[0] as [string, string];
+		// The authentic block leads; the agent's reason is flattened to one line
+		// so it cannot forge Tool/Args lines or flood the real ones off screen.
+		expect(message.startsWith('Tool: bash\nCwd: /repo\nArgs: ')).toBe(true);
+		const reasonSection = message.slice(message.indexOf('reason (unverified): '));
+		expect(reasonSection).not.toContain('\n');
+		expect(message).toContain('npm publish');
+	});
+
 	it('reports when no interactive UI is available', async () => {
 		const {tool} = setup();
 

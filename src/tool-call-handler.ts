@@ -56,9 +56,11 @@ function consumeGrant(deps: Deps, approval: PendingApproval): void {
 }
 
 function onApprove(deps: Deps, toolName: string, approval: PendingApproval | undefined, decision: ReviewDecision, cost: number): void {
-	// Consume only when the reviewer says this call matched the approved
-	// action, so an unrelated same-tool call can't burn the user's grant.
-	if (approval !== undefined && decision.matchedApproval === true) {
+	// Consume unless the reviewer explicitly reported the call as unrelated.
+	// An omitted matchedApproval fails toward the one-shot invariant: better
+	// to burn a grant on an ambiguous approve than to leave it authorizing
+	// further fuzzy retries for the rest of its TTL.
+	if (approval !== undefined && decision.matchedApproval !== false) {
 		consumeGrant(deps, approval);
 	}
 

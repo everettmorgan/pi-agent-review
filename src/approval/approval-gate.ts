@@ -13,11 +13,17 @@ type ToolCallInput = {
 	cwd: string;
 };
 
-// Keys whose string values name a filesystem target. `command` is included so
-// shell invocations (bash) that read or exfiltrate secrets are caught, since
-// they never carry a structured `path`. This covers the common tool shapes; the
-// LLM reviewer remains the backstop for exotic argument layouts.
-const pathKeys = ['path', 'file_path', 'filePath', 'filename'];
+// Keys whose string values name a filesystem target or executable payload,
+// matched case-insensitively at ANY nesting depth so structured tool shapes
+// (multi-edit arrays, wrapped configs) can't smuggle a secret path past the
+// gate. Command/code keys are included because shell and eval invocations
+// that read secrets never carry a structured `path`. Content-ish keys
+// (old_string, new_string, content) are deliberately excluded: prose merely
+// mentioning `.env` must not hard-deny, and the LLM reviewer remains the
+// backstop for exotic layouts.
+const pathKeys = new Set(['path', 'file_path', 'filepath', 'filename', 'file', 'paths', 'target', 'source', 'dir', 'directory']);
+const commandKeys = new Set(['command', 'cmd', 'script', 'code']);
+const maxGateDepth = 6;
 
 // High-confidence secret markers only. Ambiguous names (`sort.key`, `/token`,
 // `credential-helper.ts`) are deliberately left to the reviewer rather than
@@ -35,26 +41,52 @@ const secretPatterns: RegExp[] = [
 	/(?:^|\/)\.gnupg\//v,
 ];
 
-function collectCandidateStrings(input: unknown): string[] {
-	if (!isRecord(input)) {
-		return [];
-	}
+function isCandidateKey(key: string): boolean {
+	const normalized = key.toLowerCase();
+	return pathKeys.has(normalized) || commandKeys.has(normalized);
+}
 
-	const candidates: string[] = [];
-	for (const key of pathKeys) {
-		if (typeof input[key] === 'string') {
-			candidates.push(input[key]);
+function collectFromEntry(key: string, value: unknown, depth: number, out: string[]): void {
+	if (typeof value === 'string') {
+		if (isCandidateKey(key)) {
+			out.push(value);
 		}
+
+		return;
 	}
 
-	if (Array.isArray(input.paths)) {
-		candidates.push(...input.paths.filter((value): value is string => typeof value === 'string'));
+	if (Array.isArray(value) && isCandidateKey(key)) {
+		out.push(...value.filter((item): item is string => typeof item === 'string'));
 	}
 
-	if (typeof input.command === 'string') {
-		candidates.push(input.command);
+	collectCandidates(value, depth, out);
+}
+
+function collectCandidates(value: unknown, depth: number, out: string[]): void {
+	if (depth >= maxGateDepth) {
+		return;
 	}
 
+	if (Array.isArray(value)) {
+		for (const item of value) {
+			collectCandidates(item, depth + 1, out);
+		}
+
+		return;
+	}
+
+	if (!isRecord(value)) {
+		return;
+	}
+
+	for (const [key, entry] of Object.entries(value)) {
+		collectFromEntry(key, entry, depth + 1, out);
+	}
+}
+
+function collectCandidateStrings(input: unknown): string[] {
+	const candidates: string[] = [];
+	collectCandidates(input, 0, candidates);
 	return candidates;
 }
 

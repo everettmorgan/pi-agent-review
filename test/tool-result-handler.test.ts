@@ -122,13 +122,39 @@ describe('createToolResultHandler', () => {
 		expect(reviewOutputMock).not.toHaveBeenCalled();
 	});
 
-	it('skips error results and empty output', async () => {
+	it('skips empty output', async () => {
 		const state = createRuntimeState();
-		const {pi} = makePi();
 
-		await createToolResultHandler(pi, state)(makeEvent('boom', {isError: true}), makeContext().context);
-		await createToolResultHandler(pi, state)(makeEvent(' '.repeat(3)), makeContext().context);
+		await createToolResultHandler(makePi().pi, state)(makeEvent(' '.repeat(3)), makeContext().context);
 
 		expect(reviewOutputMock).not.toHaveBeenCalled();
+	});
+
+	it('reviews error results too, since they still reach the model', async () => {
+		reviewOutputMock.mockResolvedValue({ok: true, value: {containsSensitive: true, rationale: 'secret in stderr', categories: ['aws-key']}, cost: 0.01});
+		const state = createRuntimeState();
+		const {context, abort} = makeContext();
+
+		const result = await createToolResultHandler(makePi().pi, state)(makeEvent('AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMIexamplekey', {isError: true}), context);
+
+		expect(result?.isError).toBe(true);
+		expect(abort).toHaveBeenCalledOnce();
+	});
+
+	it('includes non-text content parts in the reviewed output', async () => {
+		reviewOutputMock.mockResolvedValue({ok: true, value: {containsSensitive: false, rationale: 'clean', categories: []}, cost: 0});
+		const state = createRuntimeState();
+		const event = makeEvent('visible text', {
+			content: [
+				{type: 'text', text: 'visible text'},
+				{type: 'json', data: {token: 'sk-live-1234'}},
+			],
+		} as never);
+
+		await createToolResultHandler(makePi().pi, state)(event, makeContext().context);
+
+		const reviewed = reviewOutputMock.mock.calls[0]?.[3] as string;
+		expect(reviewed).toContain('visible text');
+		expect(reviewed).toContain('sk-live-1234');
 	});
 });

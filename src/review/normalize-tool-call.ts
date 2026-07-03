@@ -33,14 +33,15 @@ export function truncateText(text: string, maxChars: number): string {
 	return `${text.slice(0, maxChars)}\n[truncated ${String(text.length - maxChars)} characters]`;
 }
 
+// Case- and whitespace-insensitive, so <UNTRUSTED_TRANSCRIPT > variants can't
+// slip through as a working fence closer.
+const closingFencePattern = /<\s*\/\s*(?<tag>untrusted_(?:tool_call|transcript|tool_output))\s*>/giv;
+const openingFencePattern = /<\s*(?<tag>untrusted_(?:tool_call|transcript|tool_output))\s*>/giv;
+
 export function neutralizeFence(text: string): string {
 	return text
-		.replaceAll('<untrusted_tool_call>', 'untrusted_tool_call')
-		.replaceAll('</untrusted_tool_call>', '/untrusted_tool_call')
-		.replaceAll('<untrusted_transcript>', 'untrusted_transcript')
-		.replaceAll('</untrusted_transcript>', '/untrusted_transcript')
-		.replaceAll('<untrusted_tool_output>', 'untrusted_tool_output')
-		.replaceAll('</untrusted_tool_output>', '/untrusted_tool_output');
+		.replaceAll(closingFencePattern, '/$<tag>')
+		.replaceAll(openingFencePattern, '$<tag>');
 }
 
 export function normalizeToolCall(input: NormalizeToolCallInput, options: NormalizeOptions = {}): ReviewRequest {

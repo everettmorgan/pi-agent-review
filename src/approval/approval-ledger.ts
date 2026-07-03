@@ -71,19 +71,26 @@ export class ApprovalLedger {
 	restoreFromBranch(branch: unknown[]): void {
 		this.consumed = 0;
 		const byNonce = new Map<string, PendingApproval>();
+		// Approvals filtered out by the kill list still count toward `consumed`
+		// when their consumption entry appears on this branch.
+		const killedOnSight = new Set<string>();
 
 		for (const entry of branch) {
 			if (!isCustomEntry(entry)) {
 				continue;
 			}
 
-			if (entry.customType === approvalEntryType && isApprovalData(entry.data) && !this.consumedNonces.has(entry.data.nonce)) {
-				byNonce.set(entry.data.nonce, entry.data);
+			if (entry.customType === approvalEntryType && isApprovalData(entry.data)) {
+				if (this.consumedNonces.has(entry.data.nonce)) {
+					killedOnSight.add(entry.data.nonce);
+				} else {
+					byNonce.set(entry.data.nonce, entry.data);
+				}
 			}
 
 			if (entry.customType === consumptionEntryType && isConsumptionData(entry.data)) {
 				this.consumedNonces.add(entry.data.nonce);
-				if (byNonce.delete(entry.data.nonce)) {
+				if (byNonce.delete(entry.data.nonce) || killedOnSight.has(entry.data.nonce)) {
 					this.consumed += 1;
 				}
 			}

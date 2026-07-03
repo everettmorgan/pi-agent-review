@@ -27,8 +27,8 @@ and run `/reload` in pi.
 
 - `/agent-review status` — current config and the last request/output review
 - `/agent-review on` / `off` — enable or disable review for this session
-  (in-memory; survives retries and forks, resets when pi restarts, does not
-  cover subagent processes)
+  (in-memory; survives retries and forks, re-arms on `/new`, resume, and
+  restart, does not cover subagent processes)
 - `/agent-review config` — interactive menu to toggle the review stages
 - `/agent-review input on|off` — review tool calls before they run
 - `/agent-review output on|off` — review tool output for leaks
@@ -40,30 +40,34 @@ and run `/reload` in pi.
 Review runs in two stages, each independently toggleable.
 
 **Request review** (before a tool runs). A deterministic gate hard-denies access
-to secret paths (`.env`, `~/.ssh`, key files, credential stores) for any tool.
+to secret paths (`.env`, `~/.ssh`, key files, credential stores) for any tool,
+matching path and command keys at any nesting depth in the arguments.
 Everything else goes to the reviewer model, which approves low-risk actions and
 denies risky ones. Denied calls are blocked; reviewer or config failures block
 (fail-closed).
 
-**Output review** (after a tool runs). Tool output is checked for secrets,
-credentials, keys, and tokens. A confirmed leak withholds the output from the
-model and transcript and stops the turn. If the reviewer can't run, the
-unreviewed output is withheld.
+**Output review** (after a tool runs). Tool output — including error results
+and structured non-text content — is checked for secrets, credentials, keys,
+and tokens. A confirmed leak withholds the output from the model and transcript
+and stops the turn. If the reviewer can't run, the unreviewed output is
+withheld.
 
 **User approval.** When the reviewer denies a call the user wants, the agent
-calls `request_user_approval`, which shows the full tool name and arguments for
-confirmation. Requests for hard-gated actions (secret paths) are refused without
-prompting — approval cannot override the gate. An approval is recorded with a
-unique nonce, the exact serialized input and cwd, and a ~10 minute expiry.
+calls `request_user_approval`, which shows the authentic tool name, cwd, and
+full arguments first, followed by the agent's stated reason — flattened and
+length-capped so it cannot forge or bury the real fields. Requests for
+hard-gated actions (secret paths) are refused without prompting — approval
+cannot override the gate. An approval is recorded with a unique nonce, the
+exact serialized input and cwd, and a ~10 minute expiry.
 
 A retry that exactly matches the approved tool, input, and cwd is approved
 mechanically, without a reviewer call. An inexact retry goes to the reviewer,
 which is told the call differs from what the user approved and must report
-whether it still matches the approved action's scope; the grant is consumed only
-on a reported match, so an unrelated call to the same tool cannot burn it. Each
-grant authorizes one execution: consumed nonces stay dead across retries and
-session forks for the life of the process, and never override hard-safety
-denials.
+whether it still matches the approved action's scope; an approve consumes the
+grant unless the reviewer explicitly reports the call as unrelated, so the
+one-shot invariant holds even when the reviewer omits the report. Each grant
+authorizes one execution: consumed nonces stay dead across retries and session
+forks for the life of the process, and never override hard-safety denials.
 
 **Logging.** Each review appends a log entry to the chat history with its verdict
 and reasoning. Entries persist in the transcript but are not sent to the model.

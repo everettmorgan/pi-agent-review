@@ -13,7 +13,13 @@ export default function agentReview(pi: ExtensionAPI): void {
 	const state = createRuntimeState();
 	const ledger = new ApprovalLedger();
 
-	pi.on('session_start', (_event, context) => {
+	pi.on('session_start', (event, context) => {
+		// Re-arm review at genuine session boundaries; forks and retries keep
+		// the in-session toggle (the whole point of making it in-memory).
+		if (event.reason === 'new' || event.reason === 'resume') {
+			state.isReviewEnabled = true;
+		}
+
 		ledger.restoreFromBranch(context.sessionManager.getBranch());
 	});
 

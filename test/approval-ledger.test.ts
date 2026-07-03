@@ -114,6 +114,31 @@ describe('ApprovalLedger', () => {
 		expect(ledger.findPendingForTool('bash', now)).toBeUndefined();
 	});
 
+	it('drops legacy approval entries that lack inputJson and cwd without throwing', () => {
+		const ledger = new ApprovalLedger();
+		const legacyData = {
+			nonce: 'n1', toolName: 'bash', approvedAction: 'Tool: bash', expiresAt: now + approvalTtlMs,
+		};
+		ledger.restoreFromBranch([
+			{type: 'custom', customType: 'agent-review-approval', data: legacyData},
+		]);
+		expect(ledger.findPendingForTool('bash', now)).toBeUndefined();
+	});
+
+	it('counts a branch consumption even when the approval was already on the kill list', () => {
+		const ledger = new ApprovalLedger();
+		const approvalEntry = {type: 'custom', customType: 'agent-review-approval', data: approvalFor('bash', 'n1')};
+		ledger.restoreFromBranch([approvalEntry]);
+		ledger.consume('n1');
+
+		ledger.restoreFromBranch([
+			approvalEntry,
+			{type: 'custom', customType: 'agent-review-consumption', data: {nonce: 'n1'}},
+		]);
+
+		expect(ledger.snapshot(now).consumed).toBe(1);
+	});
+
 	it('keeps a nonce dead across branches once any branch shows its consumption', () => {
 		const ledger = new ApprovalLedger();
 		const approvalEntry = {type: 'custom', customType: 'agent-review-approval', data: approvalFor('bash', 'n1')};

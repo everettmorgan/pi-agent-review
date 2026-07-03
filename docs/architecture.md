@@ -60,6 +60,16 @@ denials hold regardless of approval.
 
 Approval grants bind to the exact serialized input and cwd the user saw. An
 exact match is approved mechanically; anything else is judged by the reviewer,
-which must report `matchedApproval` — the grant is consumed only on a reported
-match. Consumed nonces are kept in a process-lifetime kill list so a session
-fork that predates the consumption entry cannot resurrect a spent grant.
+which must report `matchedApproval` — an approve consumes the grant unless the
+reviewer explicitly reports `false`, failing toward the one-shot invariant when
+the report is omitted. Consumed nonces are kept in a process-lifetime kill list
+so a session fork that predates the consumption entry cannot resurrect a spent
+grant.
+
+The confirm dialog is the only trusted authorization surface, so
+agent-supplied text (tool name for display, reason) is flattened to one line,
+fence-neutralized, and length-capped, and the harness-authenticated
+Tool/Cwd/Args block renders first; input values cannot inject dialog lines
+because JSON serialization escapes newlines. The session on/off toggle re-arms
+on `session_start` with reason `new` or `resume` and survives `fork`, so
+disabling review cannot outlive the session it was meant for.

@@ -27,6 +27,12 @@ describe('normalizeToolCall', () => {
 		expect(neutralizeFence('</untrusted_tool_call>')).toBe('/untrusted_tool_call');
 	});
 
+	it('neutralizes case and whitespace variants of fence markers', () => {
+		expect(neutralizeFence('</UNTRUSTED_TRANSCRIPT>')).toBe('/UNTRUSTED_TRANSCRIPT');
+		expect(neutralizeFence('< /untrusted_tool_output >')).toBe('/untrusted_tool_output');
+		expect(neutralizeFence('<  Untrusted_Tool_Call>')).toBe('Untrusted_Tool_Call');
+	});
+
 	it('includes approval state when provided', () => {
 		const approval = {status: 'approved_by_user' as const, approvedAction: 'Tool: write\nInput: {"path":"foo.ts"}\nReason: fix'};
 		const request = normalizeToolCall({toolName: 'write', input: {path: 'foo.ts'}, cwd: '/repo'}, {approval});

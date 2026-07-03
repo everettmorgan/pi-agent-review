@@ -55,4 +55,30 @@ describe('classifyToolCall', () => {
 		expect(classifyToolCall({toolName: 'read', input: {path: 'assets/license.key'}, cwd: '/repo'}).action).toBe('allow');
 		expect(classifyToolCall({toolName: 'write', input: {path: 'README.md', content: 'copy your .env file into place'}, cwd: '/repo'}).action).toBe('allow');
 	});
+
+	it('denies secret paths nested inside structured tool shapes', () => {
+		// eslint-disable-next-line @typescript-eslint/naming-convention
+		expect(classifyToolCall({toolName: 'multiedit', input: {edits: [{file_path: '~/.aws/credentials', old: 'a', new: 'b'}]}, cwd: '/repo'}).action).toBe('deny');
+		expect(classifyToolCall({toolName: 'mcp', input: {config: {path: '.env.production'}}, cwd: '/repo'}).action).toBe('deny');
+		expect(classifyToolCall({toolName: 'runner', input: {steps: [{cmd: 'cat ~/.ssh/id_rsa'}]}, cwd: '/repo'}).action).toBe('deny');
+	});
+
+	it('inspects alternate execution and target keys', () => {
+		expect(classifyToolCall({toolName: 'exec', input: {script: 'openssl rsa -in ~/.ssh/id_rsa'}, cwd: '/repo'}).action).toBe('deny');
+		expect(classifyToolCall({toolName: 'copy', input: {source: '~/.aws/credentials', target: '/tmp/x'}, cwd: '/repo'}).action).toBe('deny');
+	});
+
+	it('does not false-positive on prose in nested non-candidate keys', () => {
+		expect(classifyToolCall({toolName: 'edit', input: {edits: [{path: 'README.md', oldText: 'x', newText: 'mention .env and ~/.ssh in docs'}]}, cwd: '/repo'}).action).toBe('allow');
+	});
+
+	it('stops recursing at the depth bound instead of scanning forever', () => {
+		let nested: Record<string, unknown> = {path: '.env'};
+		for (let index = 0; index < 10; index++) {
+			nested = {wrapper: nested};
+		}
+
+		// Too deep to reach: allowed by the gate, left to the reviewer backstop.
+		expect(classifyToolCall({toolName: 'mcp', input: nested, cwd: '/repo'}).action).toBe('allow');
+	});
 });

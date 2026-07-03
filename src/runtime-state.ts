@@ -23,8 +23,9 @@ export type RuntimeState = {
 	lastOutputReview: LastOutputReview | undefined;
 	// Session on/off switch. Deliberately plain in-memory process state, never
 	// persisted to or re-synced from the session branch: branch entries don't
-	// survive retries, forks, or /new within the same pi process, which made
-	// the old branch-synced toggle silently re-enable itself.
+	// survive retries or forks, which made the old branch-synced toggle
+	// silently re-enable itself. Re-armed on session_start with reason
+	// 'new'/'resume' so off can't outlive the session it was meant for.
 	isReviewEnabled: boolean;
 	sessionCost: number;
 };
