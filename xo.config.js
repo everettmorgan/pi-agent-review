@@ -1,7 +1,48 @@
 const directiveCommentPattern = /^\s*(?:eslint|@ts-|globals?\s|exported\s)/v;
+const dashPattern = /[–—]/v;
+const affixUnderscorePattern = /^_|_$/v;
 
 const selfDocumentingCode = {
 	rules: {
+		'no-dashes': {
+			meta: {
+				type: 'suggestion',
+				docs: {description: 'Disallow em and en dashes in string content.'},
+				messages: {noDashes: 'No em or en dashes in prompts or output strings; use colons, commas, or parentheses.'},
+				schema: [],
+			},
+			create(context) {
+				return {
+					Literal(node) {
+						if (typeof node.value === 'string' && dashPattern.test(node.value)) {
+							context.report({node, messageId: 'noDashes'});
+						}
+					},
+					TemplateElement(node) {
+						if (dashPattern.test(node.value.raw)) {
+							context.report({node, messageId: 'noDashes'});
+						}
+					},
+				};
+			},
+		},
+		'no-affix-underscores': {
+			meta: {
+				type: 'suggestion',
+				docs: {description: 'Disallow underscore prefixes and suffixes on identifiers.'},
+				messages: {noAffix: 'No underscore prefixes or suffixes on identifiers; use a plain name.'},
+				schema: [],
+			},
+			create(context) {
+				return {
+					Identifier(node) {
+						if (affixUnderscorePattern.test(node.name)) {
+							context.report({node, messageId: 'noAffix'});
+						}
+					},
+				};
+			},
+		},
 		'no-comments': {
 			meta: {
 				type: 'suggestion',
@@ -73,6 +114,8 @@ export default [
 		plugins: {self: selfDocumentingCode},
 		rules: {
 			'self/no-comments': 'error',
+			'self/no-dashes': 'error',
+			'self/no-affix-underscores': 'error',
 		},
 	},
 	{
