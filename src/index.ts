@@ -35,5 +35,5 @@ export default function agentReview(pi: ExtensionAPI): void {
 	pi.on('tool_call', createToolCallHandler(pi, state, ledger));
 	pi.on('tool_result', createToolResultHandler(pi, state));
 
-	pi.registerCommand('agent-review', createAgentReviewCommand(state));
+	pi.registerCommand('agent-review', createAgentReviewCommand(state, ledger));
 }

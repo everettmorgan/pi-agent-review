@@ -12,7 +12,6 @@ export type ReviewConfig = {
 	reviewInput: boolean;
 	reviewOutput: boolean;
 	timeoutMs: number;
-	denyOnReviewerFailure: true;
 	consecutiveDenialLimit: number;
 	rollingDenialLimit: number;
 };
@@ -37,7 +36,6 @@ export const defaultConfig: AgentReviewConfig = {
 		reviewInput: true,
 		reviewOutput: true,
 		timeoutMs: 30_000,
-		denyOnReviewerFailure: true,
 		consecutiveDenialLimit: 3,
 		rollingDenialLimit: 10,
 	},
@@ -67,7 +65,6 @@ function mergeReview(review: Partial<ReviewConfig>): ReviewConfig {
 		reviewInput: review.reviewInput ?? defaultConfig.review.reviewInput,
 		reviewOutput: review.reviewOutput ?? defaultConfig.review.reviewOutput,
 		timeoutMs: review.timeoutMs ?? defaultConfig.review.timeoutMs,
-		denyOnReviewerFailure: true,
 		consecutiveDenialLimit: review.consecutiveDenialLimit ?? defaultConfig.review.consecutiveDenialLimit,
 		rollingDenialLimit: review.rollingDenialLimit ?? defaultConfig.review.rollingDenialLimit,
 	};

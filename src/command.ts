@@ -2,6 +2,7 @@ import type {
 	ExtensionCommandContext,
 	RegisteredCommand,
 } from '@earendil-works/pi-coding-agent';
+import type {ApprovalLedger} from './approval/approval-ledger.ts';
 import {
 	configPath,
 	loadConfigFromPath,
@@ -135,8 +136,9 @@ async function handleConfig(context: ExtensionCommandContext, config: ConfigResu
 	}
 }
 
-function renderStatus(state: RuntimeState, config: ConfigResult): string {
+function renderStatus(state: RuntimeState, ledger: ApprovalLedger, config: ConfigResult): string {
 	const snapshot = state.tracker.snapshot();
+	const grants = ledger.snapshot(Date.now());
 	const statusLines = [
 		'Agent Review',
 		'',
@@ -158,6 +160,8 @@ function renderStatus(state: RuntimeState, config: ConfigResult): string {
 		'',
 		`Consecutive denials: ${String(snapshot.consecutiveDenials)}`,
 		`Rolling denials: ${String(snapshot.rollingDenials)}`,
+		`Pending approvals: ${grants.pending.length === 0 ? 'none' : grants.pending.join(', ')}`,
+		`Grants consumed: ${String(grants.consumed)}`,
 		`Session cost: ${formatCost(state.sessionCost)}`,
 	);
 
@@ -216,7 +220,7 @@ async function runToggleSubcommand(state: RuntimeState, context: ExtensionComman
 	return false;
 }
 
-async function runConfigSubcommand(state: RuntimeState, context: ExtensionCommandContext, trimmed: string): Promise<void> {
+async function runConfigSubcommand(state: RuntimeState, ledger: ApprovalLedger, context: ExtensionCommandContext, trimmed: string): Promise<void> {
 	const config = await loadConfigFromPath(configPath);
 
 	if (trimmed === 'config') {
@@ -226,19 +230,19 @@ async function runConfigSubcommand(state: RuntimeState, context: ExtensionComman
 	} else if (trimmed.startsWith('test ')) {
 		await handleTest(context, config, trimmed.slice('test '.length));
 	} else if (trimmed === '' || trimmed === 'status') {
-		context.ui.notify(renderStatus(state, config), config.ok ? 'info' : 'error');
+		context.ui.notify(renderStatus(state, ledger, config), config.ok ? 'info' : 'error');
 	} else {
 		context.ui.notify(usage, 'error');
 	}
 }
 
-export function createAgentReviewCommand(state: RuntimeState): Omit<RegisteredCommand, 'name' | 'sourceInfo'> {
+export function createAgentReviewCommand(state: RuntimeState, ledger: ApprovalLedger): Omit<RegisteredCommand, 'name' | 'sourceInfo'> {
 	return {
 		description: 'Show Agent Review status or test a tool call review.',
 		async handler(commandArguments, context) {
 			const trimmed = commandArguments.trim();
 			if (!(await runToggleSubcommand(state, context, trimmed))) {
-				await runConfigSubcommand(state, context, trimmed);
+				await runConfigSubcommand(state, ledger, context, trimmed);
 			}
 		},
 	};

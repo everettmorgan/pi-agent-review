@@ -28,10 +28,9 @@ export class DenialTracker {
 		}
 	}
 
-	recordApproved(): DenialTrackerResult {
+	recordApproved(): void {
 		this.consecutiveDenials = 0;
 		this.recordOutcome('approved');
-		return {tripped: false};
 	}
 
 	recordDenied(): DenialTrackerResult {

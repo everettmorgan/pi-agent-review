@@ -82,7 +82,6 @@ Optional, at `~/.pi/agent/agent-review/config.json`:
     "reviewInput": true,
     "reviewOutput": true,
     "timeoutMs": 30000,
-    "denyOnReviewerFailure": true,
     "consecutiveDenialLimit": 3,
     "rollingDenialLimit": 10
   },
