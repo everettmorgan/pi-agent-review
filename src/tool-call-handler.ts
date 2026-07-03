@@ -109,7 +109,7 @@ export function createToolCallHandler(pi: ExtensionAPI, state: RuntimeState, led
 
 		const approval = ledger.findPendingForTool(event.toolName, Date.now());
 		const approvalState = approval === undefined ? undefined : {status: 'approved_by_user' as const, approvedAction: approval.approvedAction};
-		const review = await performReview(context, configResult.value, normalizeToolCall(call, approvalState === undefined ? {} : {approval: approvalState}));
+		const review = await performReview(context, configResult.value, normalizeToolCall(call, approvalState));
 		state.sessionCost += review.cost;
 		return dispatchOutcome(deps, event.toolName, approval, review);
 	};

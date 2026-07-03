@@ -6,27 +6,19 @@ export type TrustedIntentContext = {
 	structuredUserAnswers: string[];
 };
 
-export type TrustedIntentOptions = {
-	maxItems: number;
-	maxCharsPerItem: number;
-};
+const maxItems = 8;
+const maxCharsPerItem = 1000;
 
-const defaultOptions: TrustedIntentOptions = {
-	maxItems: 8,
-	maxCharsPerItem: 1000,
-};
-
-function cleanTrustedText(text: string, maxChars: number): string {
-	return truncateText(neutralizeFence(text.trim()), maxChars);
+function cleanTrustedText(text: string): string {
+	return truncateText(neutralizeFence(text.trim()), maxCharsPerItem);
 }
 
-export function buildTrustedIntentContext(branch: unknown[], options: Partial<TrustedIntentOptions> = {}): TrustedIntentContext {
-	const resolvedOptions = {...defaultOptions, ...options};
+export function buildTrustedIntentContext(branch: unknown[]): TrustedIntentContext {
 	const recentUserMessages: string[] = [];
 	const structuredUserAnswers: string[] = [];
 
 	for (let index = branch.length - 1; index >= 0; index--) {
-		if (recentUserMessages.length + structuredUserAnswers.length >= resolvedOptions.maxItems) {
+		if (recentUserMessages.length + structuredUserAnswers.length >= maxItems) {
 			break;
 		}
 
@@ -37,12 +29,12 @@ export function buildTrustedIntentContext(branch: unknown[], options: Partial<Tr
 		}
 
 		if (message.role === 'user') {
-			recentUserMessages.unshift(cleanTrustedText(text, resolvedOptions.maxCharsPerItem));
+			recentUserMessages.unshift(cleanTrustedText(text));
 			continue;
 		}
 
 		if (message.role === 'toolResult' && message.toolName === 'ask_user_question') {
-			structuredUserAnswers.unshift(cleanTrustedText(text, resolvedOptions.maxCharsPerItem));
+			structuredUserAnswers.unshift(cleanTrustedText(text));
 		}
 	}
 

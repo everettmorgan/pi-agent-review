@@ -11,10 +11,6 @@ export type ApprovalState = {
 	approvedAction: string;
 };
 
-export type NormalizeOptions = {
-	approval?: ApprovalState;
-};
-
 export type ReviewRequest = {
 	toolName: string;
 	cwd: string;
@@ -41,7 +37,7 @@ export function neutralizeFence(text: string): string {
 		.replaceAll(openingFencePattern, '$<tag>');
 }
 
-export function normalizeToolCall(input: NormalizeToolCallInput, options: NormalizeOptions = {}): ReviewRequest {
+export function normalizeToolCall(input: NormalizeToolCallInput, approval?: ApprovalState): ReviewRequest {
 	const serialized = stringify(input.input) ?? 'null';
 	const request: ReviewRequest = {
 		toolName: input.toolName,
@@ -49,8 +45,8 @@ export function normalizeToolCall(input: NormalizeToolCallInput, options: Normal
 		argumentsJson: neutralizeFence(truncateText(serialized, defaultArgumentLimit)),
 	};
 
-	if (options.approval !== undefined) {
-		request.approval = options.approval;
+	if (approval !== undefined) {
+		request.approval = approval;
 	}
 
 	return request;

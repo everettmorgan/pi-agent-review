@@ -1,10 +1,6 @@
 import {describe, expect, it} from 'vitest';
-import {
-	buildUserMessage,
-	createTimeoutSignal,
-	extractTextResponse,
-	systemPrompt,
-} from '../src/review/reviewer.ts';
+import {createTimeoutSignal, extractTextResponse} from '../src/review/model-call.ts';
+import {buildUserMessage, systemPrompt} from '../src/review/reviewer.ts';
 
 describe('extractTextResponse', () => {
 	it('joins text parts from a model response', () => {

@@ -1,7 +1,8 @@
 import type {AgentReviewConfig} from '../config.ts';
 import {buildTrustedIntentContext, formatTrustedIntentContext} from './approval-context.ts';
 import type {ReviewRequest} from './normalize-tool-call.ts';
-import {runReviewer, type ReviewerContext, type ReviewerResult} from './reviewer.ts';
+import type {ReviewerContext} from './model-call.ts';
+import {runReviewer, type ReviewerResult} from './reviewer.ts';
 import {compactTranscript, type TranscriptOptions} from './transcript.ts';
 
 export const transcriptLimits: TranscriptOptions = {maxEntries: 30, maxChars: 20_000};

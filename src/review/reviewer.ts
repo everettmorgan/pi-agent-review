@@ -9,8 +9,6 @@ import {callReviewModel, type ReviewerContext} from './model-call.ts';
 import type {ReviewRequest} from './normalize-tool-call.ts';
 import {parseReviewDecision, validateDecision, type ReviewDecision} from './review-decision.ts';
 
-export {createTimeoutSignal, extractTextResponse, type ReviewerContext} from './model-call.ts';
-
 export type ReviewerResult = {ok: true; value: ReviewDecision; cost: number} | {ok: false; error: string; cost: number};
 
 const decisionToolName = 'submit_review_decision';

@@ -35,7 +35,7 @@ describe('normalizeToolCall', () => {
 
 	it('includes approval state when provided', () => {
 		const approval = {status: 'approved_by_user' as const, approvedAction: 'Tool: write\nInput: {"path":"foo.ts"}\nReason: fix'};
-		const request = normalizeToolCall({toolName: 'write', input: {path: 'foo.ts'}, cwd: '/repo'}, {approval});
+		const request = normalizeToolCall({toolName: 'write', input: {path: 'foo.ts'}, cwd: '/repo'}, approval);
 
 		expect(request.approval).toEqual(approval);
 	});
