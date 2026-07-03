@@ -19,7 +19,7 @@ export type StatusContext = {
 const statusKey = 'agent-review';
 
 export function registerReviewLog(pi: ExtensionAPI): void {
-	pi.registerMessageRenderer<ReviewLogData>(reviewLogEntryType, (message, _options, theme) => new Text(theme.fg('muted', message.details?.message ?? '')));
+	pi.registerMessageRenderer<ReviewLogData>(reviewLogEntryType, (message, options, theme) => new Text(theme.fg('muted', message.details?.message ?? '')));
 }
 
 export type ReviewOutcome = {

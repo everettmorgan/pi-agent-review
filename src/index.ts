@@ -21,7 +21,7 @@ export default function agentReview(pi: ExtensionAPI): void {
 		ledger.restoreFromBranch(context.sessionManager.getBranch());
 	});
 
-	pi.on('session_tree', (_event, context) => {
+	pi.on('session_tree', (event, context) => {
 		ledger.restoreFromBranch(context.sessionManager.getBranch());
 	});
 

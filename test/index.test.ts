@@ -34,7 +34,7 @@ function setup() {
 		registerTool: vi.fn((definition: ToolDefinition) => {
 			tool = definition;
 		}),
-		registerCommand: vi.fn((_name: string, definition: Omit<RegisteredCommand, 'name' | 'sourceInfo'>) => {
+		registerCommand: vi.fn((name: string, definition: Omit<RegisteredCommand, 'name' | 'sourceInfo'>) => {
 			command = definition;
 		}),
 		appendEntry: vi.fn(),

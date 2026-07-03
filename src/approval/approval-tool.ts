@@ -38,7 +38,7 @@ export function registerApprovalTool(pi: ExtensionAPI, ledger: ApprovalLedger): 
 			input: Type.Unknown({description: 'The exact input object for the tool call, unchanged.'}),
 			reason: Type.String({description: 'One sentence explaining why this action is needed.'}),
 		}),
-		async execute(_toolCallId, params, _signal, _onUpdate, context) {
+		async execute(toolCallId, params, signal, onUpdate, context) {
 			const gate = classifyToolCall({toolName: params.toolName, input: params.input, cwd: context.cwd});
 			if (gate.action === 'deny') {
 				return textResult(`Approval cannot be requested: ${gate.reason} This action is categorically blocked and user approval cannot override it. Do not ask again or pursue it another way.`);
