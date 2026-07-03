@@ -1,4 +1,5 @@
 import type {ExtensionAPI} from '@earendil-works/pi-coding-agent';
+import {formatCost} from './review/run-review.ts';
 import type {RuntimeState} from './runtime-state.ts';
 
 export const reviewLogEntryType = 'agent-review-log';
@@ -7,35 +8,31 @@ export type ReviewLogData = {
 	message: string;
 };
 
-type WidgetContext = {
+export type ReviewOutcomeKind = 'pass' | 'block';
+
+export type StatusContext = {
 	hasUI: boolean;
-	ui: {setWidget(key: string, content: string[] | undefined, options?: {placement?: 'aboveEditor' | 'belowEditor'}): void};
+	ui: {setStatus(key: string, text: string | undefined): void};
 };
 
-const widgetKey = 'agent-review-log';
-const maxWidgetLines = 3;
-const headlineLimit = 100;
+const statusKey = 'agent-review';
 
-function headline(message: string): string {
-	const firstLine = message.split('\n', 1)[0] ?? message;
-	return firstLine.length <= headlineLimit ? firstLine : `${firstLine.slice(0, headlineLimit)}…`;
-}
-
-export function appendReviewLog(pi: ExtensionAPI, state: RuntimeState, context: WidgetContext, message: string): void {
+export function appendReviewLog(pi: ExtensionAPI, state: RuntimeState, context: StatusContext, kind: ReviewOutcomeKind, message: string): void {
 	pi.appendEntry<ReviewLogData>(reviewLogEntryType, {message});
 
-	if (!context.hasUI) {
-		return;
+	if (kind === 'pass') {
+		state.reviewTally.passed += 1;
+	} else {
+		state.reviewTally.blocked += 1;
 	}
 
-	state.recentReviewHeadlines.push(headline(message));
-	if (state.recentReviewHeadlines.length > maxWidgetLines) {
-		state.recentReviewHeadlines.shift();
+	if (context.hasUI) {
+		context.ui.setStatus(statusKey, `review ✓${String(state.reviewTally.passed)} ✗${String(state.reviewTally.blocked)} ${formatCost(state.sessionCost)}`);
 	}
+}
 
-	context.ui.setWidget(
-		widgetKey,
-		state.recentReviewHeadlines.map(line => `Agent Review · ${line}`),
-		{placement: 'belowEditor'},
-	);
+export function showReviewDisabledStatus(context: StatusContext, isEnabled: boolean): void {
+	if (context.hasUI) {
+		context.ui.setStatus(statusKey, isEnabled ? undefined : 'review off');
+	}
 }

@@ -69,10 +69,11 @@ one-shot invariant holds even when the reviewer omits the report. Each grant
 authorizes one execution: consumed nonces stay dead across retries and session
 forks for the life of the process, and never override hard-safety denials.
 
-**Logging.** Recent review outcomes are shown live in a widget below the
-editor. Each review also appends a full log entry to the session file — never
-sent to the model — and the latest request/output assessments are shown by
-`/agent-review status`.
+**Logging.** A footer status segment keeps a running tally of review outcomes
+and session cost (`review ✓12 ✗2 $0.43`), and shows `review off` while the
+session toggle is off. Each review also appends a full log entry to the
+session file — never sent to the model — and the latest request/output
+assessments are shown by `/agent-review status`.
 
 ## Config
 

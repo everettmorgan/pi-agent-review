@@ -32,7 +32,7 @@ function onFailure(deps: Deps, toolName: string, error: string, cost: number): T
 	deps.state.lastDecision = {
 		toolName, decision: 'failure', rationale: error, cost,
 	};
-	appendReviewLog(deps.pi, deps.state, deps.context, formatOutcome('Failed', toolName, error, cost));
+	appendReviewLog(deps.pi, deps.state, deps.context, 'block', formatOutcome('Failed', toolName, error, cost));
 	return recordDenialAndBlock(deps.state, formatReviewerFailureReason(error), cost);
 }
 
@@ -44,7 +44,7 @@ function onDeny(deps: Deps, toolName: string, decision: ReviewDecision, cost: nu
 		cost,
 		...((decision.saferAlternative !== undefined) && {saferAlternative: decision.saferAlternative}),
 	};
-	appendReviewLog(deps.pi, deps.state, deps.context, formatOutcome('Denied', toolName, decision.rationale, cost, decision.saferAlternative));
+	appendReviewLog(deps.pi, deps.state, deps.context, 'block', formatOutcome('Denied', toolName, decision.rationale, cost, decision.saferAlternative));
 	return recordDenialAndBlock(deps.state, formatDenialReason(decision), cost);
 }
 
@@ -62,7 +62,7 @@ function onApprove(deps: Deps, toolName: string, approval: PendingApproval | und
 	deps.state.lastDecision = {
 		toolName, decision: 'approve', rationale: decision.rationale, cost,
 	};
-	appendReviewLog(deps.pi, deps.state, deps.context, formatOutcome('Approved', toolName, decision.rationale, cost));
+	appendReviewLog(deps.pi, deps.state, deps.context, 'pass', formatOutcome('Approved', toolName, decision.rationale, cost));
 }
 
 function onExactApproval(deps: Deps, toolName: string, approval: PendingApproval): void {
@@ -72,7 +72,7 @@ function onExactApproval(deps: Deps, toolName: string, approval: PendingApproval
 	deps.state.lastDecision = {
 		toolName, decision: 'approve', rationale, cost: 0,
 	};
-	appendReviewLog(deps.pi, deps.state, deps.context, formatOutcome('Approved', toolName, rationale, 0));
+	appendReviewLog(deps.pi, deps.state, deps.context, 'pass', formatOutcome('Approved', toolName, rationale, 0));
 }
 
 export function createToolCallHandler(pi: ExtensionAPI, state: RuntimeState, ledger: ApprovalLedger) {

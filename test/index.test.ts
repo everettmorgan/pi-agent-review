@@ -51,14 +51,15 @@ function setup() {
 
 function commandContext() {
 	const notify = vi.fn();
-	return {context: {ui: {notify}} as unknown as ExtensionCommandContext, notify};
+	// eslint-disable-next-line @typescript-eslint/naming-convention
+	return {context: {hasUI: true, ui: {notify, setStatus: vi.fn()}} as unknown as ExtensionCommandContext, notify};
 }
 
 const sessionContext = {sessionManager: {getBranch: () => []}} as unknown as ExtensionContext;
 
 const toolContext = {
 	// eslint-disable-next-line @typescript-eslint/naming-convention
-	cwd: '/repo', hasUI: true, ui: {setWidget: vi.fn()}, sessionManager: {getBranch: () => []},
+	cwd: '/repo', hasUI: true, ui: {setStatus: vi.fn()}, sessionManager: {getBranch: () => []},
 } as unknown as ExtensionContext;
 
 function secretToolCall(): ToolCallEvent {

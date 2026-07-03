@@ -22,7 +22,7 @@ export type RuntimeState = {
 	lastDecision: LastDecision | undefined;
 	lastOutputReview: LastOutputReview | undefined;
 	isReviewEnabled: boolean;
-	recentReviewHeadlines: string[];
+	reviewTally: {passed: number; blocked: number};
 	sessionCost: number;
 };
 
@@ -32,7 +32,7 @@ export function createRuntimeState(): RuntimeState {
 		lastDecision: undefined,
 		lastOutputReview: undefined,
 		isReviewEnabled: true,
-		recentReviewHeadlines: [],
+		reviewTally: {passed: 0, blocked: 0},
 		sessionCost: 0,
 	};
 }

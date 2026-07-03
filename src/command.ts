@@ -15,12 +15,14 @@ import {openModelPicker} from './model-picker.ts';
 import {errorMessage} from './shared/guards.ts';
 import {normalizeToolCall} from './review/normalize-tool-call.ts';
 import {formatCost, formatOutcome, performReview} from './review/run-review.ts';
+import {showReviewDisabledStatus} from './review-log.ts';
 import type {RuntimeState} from './runtime-state.ts';
 
 const usage = 'Usage: /agent-review status | on | off | config | input on|off | output on|off | model [current|provider/model] | test <tool-name> <json-args>';
 
 function handleToggle(state: RuntimeState, context: ExtensionCommandContext, isEnabled: boolean): void {
 	state.isReviewEnabled = isEnabled;
+	showReviewDisabledStatus(context, isEnabled);
 	context.ui.notify(`Agent Review ${isEnabled ? 'enabled' : 'disabled'} for this session.`, 'info');
 }
 

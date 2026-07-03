@@ -39,7 +39,7 @@ function makeContext() {
 		cwd: '/repo',
 		// eslint-disable-next-line @typescript-eslint/naming-convention
 		hasUI: true,
-		ui: {notify, confirm: vi.fn(), setWidget: vi.fn()},
+		ui: {notify, confirm: vi.fn(), setStatus: vi.fn()},
 		sessionManager: {getBranch: () => []},
 	} as unknown as ExtensionContext;
 	return {context, notify};

@@ -62,7 +62,7 @@ async function recordApproval(tool: ToolDefinition, toolName: string, input: unk
 function toolCallContext(cwd: string): ExtensionContext {
 	return {
 		// eslint-disable-next-line @typescript-eslint/naming-convention
-		cwd, hasUI: true, ui: {setWidget: vi.fn()}, sessionManager: {getBranch: () => []},
+		cwd, hasUI: true, ui: {setStatus: vi.fn()}, sessionManager: {getBranch: () => []},
 	} as unknown as ExtensionContext;
 }
 
