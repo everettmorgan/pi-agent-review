@@ -26,7 +26,7 @@ export function createToolResultHandler(pi: ExtensionAPI, state: RuntimeState) {
 
 		const config = await loadConfigFromPath(configPath);
 		if (!config.ok) {
-			appendReviewLog(pi, `Output review — withheld ${event.toolName}: configuration is invalid (${config.error}).`);
+			appendReviewLog(pi, state, context, `Output review — withheld ${event.toolName}: configuration is invalid (${config.error}).`);
 			return withheldResult(`configuration is invalid (${config.error})`);
 		}
 
@@ -38,7 +38,7 @@ export function createToolResultHandler(pi: ExtensionAPI, state: RuntimeState) {
 		state.sessionCost += review.cost;
 
 		if (!review.ok) {
-			appendReviewLog(pi, `Output review — withheld ${event.toolName}: could not inspect (${review.error}). Cost: ${formatCost(review.cost)}`);
+			appendReviewLog(pi, state, context, `Output review — withheld ${event.toolName}: could not inspect (${review.error}). Cost: ${formatCost(review.cost)}`);
 			return withheldResult(`it could not be inspected (${review.error})`);
 		}
 
@@ -53,7 +53,7 @@ export function createToolResultHandler(pi: ExtensionAPI, state: RuntimeState) {
 		const labels = review.value.categories.length > 0 ? ` [${review.value.categories.join(', ')}]` : '';
 
 		if (review.value.containsSensitive) {
-			appendReviewLog(pi, `Output review — blocked ${event.toolName}: sensitive data detected${labels}: ${review.value.rationale} Cost: ${formatCost(review.cost)}`);
+			appendReviewLog(pi, state, context, `Output review — blocked ${event.toolName}: sensitive data detected${labels}: ${review.value.rationale} Cost: ${formatCost(review.cost)}`);
 			context.abort();
 			return {
 				isError: true,
@@ -65,7 +65,7 @@ Execution has been stopped. Do not attempt to retrieve or transmit this data.`,
 			};
 		}
 
-		appendReviewLog(pi, `Output review — cleared ${event.toolName}: ${review.value.rationale} Cost: ${formatCost(review.cost)}`);
+		appendReviewLog(pi, state, context, `Output review — cleared ${event.toolName}: ${review.value.rationale} Cost: ${formatCost(review.cost)}`);
 		return undefined;
 	};
 }

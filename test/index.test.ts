@@ -37,7 +37,6 @@ function setup() {
 		registerCommand: vi.fn((_name: string, definition: Omit<RegisteredCommand, 'name' | 'sourceInfo'>) => {
 			command = definition;
 		}),
-		registerMessageRenderer: vi.fn(),
 		appendEntry: vi.fn(),
 	} as unknown as ExtensionAPI;
 	agentReview(pi);
@@ -56,7 +55,11 @@ function commandContext() {
 }
 
 const sessionContext = {sessionManager: {getBranch: () => []}} as unknown as ExtensionContext;
-const toolContext = {cwd: '/repo', sessionManager: {getBranch: () => []}} as unknown as ExtensionContext;
+
+const toolContext = {
+	// eslint-disable-next-line @typescript-eslint/naming-convention
+	cwd: '/repo', hasUI: true, ui: {setWidget: vi.fn()}, sessionManager: {getBranch: () => []},
+} as unknown as ExtensionContext;
 
 function secretToolCall(): ToolCallEvent {
 	return {toolName: 'read', input: {path: '.env'}} as unknown as ToolCallEvent;
@@ -92,7 +95,6 @@ describe('agentReview wiring', () => {
 		// eslint-disable-next-line unicorn/prefer-iterator-to-array
 		expect([...handlers.keys()].toSorted()).toEqual(['session_start', 'session_tree', 'tool_call', 'tool_result', 'turn_start']);
 		expect(pi.registerCommand).toHaveBeenCalledWith('agent-review', expect.anything());
-		expect(pi.registerMessageRenderer).toHaveBeenCalledWith('agent-review-log', expect.any(Function));
 	});
 
 	it('review is armed by default: the hard gate blocks a secret read', async () => {

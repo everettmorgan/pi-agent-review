@@ -60,7 +60,10 @@ async function recordApproval(tool: ToolDefinition, toolName: string, input: unk
 }
 
 function toolCallContext(cwd: string): ExtensionContext {
-	return {cwd, sessionManager: {getBranch: () => []}} as unknown as ExtensionContext;
+	return {
+		// eslint-disable-next-line @typescript-eslint/naming-convention
+		cwd, hasUI: true, ui: {setWidget: vi.fn()}, sessionManager: {getBranch: () => []},
+	} as unknown as ExtensionContext;
 }
 
 describe('approval flow end to end (real tool, real ledger, real handler)', () => {

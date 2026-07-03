@@ -69,8 +69,10 @@ one-shot invariant holds even when the reviewer omits the report. Each grant
 authorizes one execution: consumed nonces stay dead across retries and session
 forks for the life of the process, and never override hard-safety denials.
 
-**Logging.** Each review appends a log entry to the chat history with its verdict
-and reasoning. Entries persist in the transcript but are not sent to the model.
+**Logging.** Recent review outcomes are shown live in a widget below the
+editor. Each review also appends a full log entry to the session file — never
+sent to the model — and the latest request/output assessments are shown by
+`/agent-review status`.
 
 ## Config
 

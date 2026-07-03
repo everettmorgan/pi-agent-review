@@ -29,12 +29,16 @@ function makePi() {
 
 function makeContext() {
 	const abort = vi.fn();
+	const setWidget = vi.fn();
 	const context = {
 		cwd: '/repo',
 		abort,
+		// eslint-disable-next-line @typescript-eslint/naming-convention
+		hasUI: true,
+		ui: {setWidget},
 		sessionManager: {getBranch: () => []},
 	} as unknown as ExtensionContext;
-	return {context, abort};
+	return {context, abort, setWidget};
 }
 
 function lastLog(appendEntry: ReturnType<typeof vi.fn>): string | undefined {
@@ -58,11 +62,11 @@ describe('createToolResultHandler', () => {
 		loadConfigMock.mockResolvedValue({ok: true, value: {reviewer: {}, review: {reviewOutput: true}}});
 	});
 
-	it('passes clean output through, records the assessment, and logs it', async () => {
+	it('passes clean output through, records the assessment, logs it, and updates the widget', async () => {
 		reviewOutputMock.mockResolvedValue({ok: true, value: {containsSensitive: false, rationale: 'no secrets', categories: []}, cost: 0.01});
 		const state = createRuntimeState();
 		const {pi, appendEntry} = makePi();
-		const {context, abort} = makeContext();
+		const {context, abort, setWidget} = makeContext();
 
 		const result = await createToolResultHandler(pi, state)(makeEvent('ordinary file contents'), context);
 
@@ -71,6 +75,11 @@ describe('createToolResultHandler', () => {
 		expect(state.sessionCost).toBe(0.01);
 		expect(state.lastOutputReview).toMatchObject({toolName: 'read', containsSensitive: false, rationale: 'no secrets'});
 		expect(lastLog(appendEntry)).toContain('Output review — cleared read');
+		expect(setWidget).toHaveBeenCalledWith(
+			'agent-review-log',
+			[expect.stringContaining('Agent Review · Output review — cleared read') as string],
+			{placement: 'belowEditor'},
+		);
 	});
 
 	it('blocks, logs, and stops when a leak is detected', async () => {
