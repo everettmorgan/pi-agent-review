@@ -3,7 +3,8 @@
 ## Flow
 
 ```
-tool_call  → tool-call-handler → gate → reviewer → allow / block
+tool_call  → tool-call-handler → gate → exact-approval match → allow
+                                      ↘ reviewer → allow / block
 tool_result → tool-result-handler → output reviewer → pass / withhold + stop
 ```
 
@@ -22,8 +23,10 @@ Top level (`src/`):
 - `command.ts` — `/agent-review` subcommands.
 - `config.ts` — load, merge, validate, and persist config.
 - `config-menu.ts`, `model-picker.ts` — interactive TUI menus.
-- `runtime-state.ts` — in-memory per-session state (tracker, cost, last reviews).
-- `session-state.ts` — session enable/disable, persisted on the branch.
+- `runtime-state.ts` — in-memory per-session state (session on/off toggle,
+  tracker, cost, last reviews). The toggle is deliberately never persisted to or
+  re-synced from the session branch: branch entries don't survive retries or
+  forks, which silently re-enabled review.
 - `denial-tracker.ts` — consecutive/rolling denial circuit breaker.
 - `review-log.ts` — append-only review log entries and their renderer.
 
@@ -54,3 +57,9 @@ The reviewer treats the transcript and tool-call arguments as untrusted; only
 direct user messages, `ask_user_question` answers, and an explicit
 `approved_by_user` grant carry authority. Secret-path denials and hard-safety
 denials hold regardless of approval.
+
+Approval grants bind to the exact serialized input and cwd the user saw. An
+exact match is approved mechanically; anything else is judged by the reviewer,
+which must report `matchedApproval` — the grant is consumed only on a reported
+match. Consumed nonces are kept in a process-lifetime kill list so a session
+fork that predates the consumption entry cannot resurrect a spent grant.

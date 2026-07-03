@@ -1,6 +1,6 @@
 {
   "name": "pi-agent-review",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "A pi coding-agent extension that reviews every tool call and tool output with an LLM reviewer, hard-denies secret access, and gates risky actions behind user approval.",
   "type": "module",
   "license": "MIT",
