@@ -22,7 +22,7 @@ export type ReviewerContext = {
 
 export type ParseResult<T> = {ok: true; value: T} | {ok: false; error: string};
 
-export type ModelCallResult<T> = {ok: true; value: T; cost: number} | {ok: false; error: string; cost: number};
+export type ModelCallResult<T> = {ok: true; value: T; cost: number} | {ok: false; error: string; cost: number; aborted?: boolean};
 
 export type ModelCall<T> = {
 	systemPrompt: string;
@@ -31,6 +31,23 @@ export type ModelCall<T> = {
 	parseToolArguments: (args: unknown) => ParseResult<T>;
 	parseTextFallback?: (text: string) => ParseResult<T>;
 };
+
+function abortedResult<T>(didTimeout: boolean, timeoutMs: number, cost: number): ModelCallResult<T> {
+	if (didTimeout) {
+		return {
+			ok: false,
+			error: `Reviewer timed out after ${String(Math.round(timeoutMs / 1000))}s.`,
+			cost,
+		};
+	}
+
+	return {
+		ok: false,
+		error: 'The turn was aborted while review was in progress.',
+		aborted: true,
+		cost,
+	};
+}
 
 function reviewCost(response: {usage?: {cost?: {total?: number}}}): number {
 	return response.usage?.cost?.total ?? 0;
@@ -48,9 +65,11 @@ function selectModel(context: ReviewerContext, config: AgentReviewConfig): Model
 	return context.modelRegistry.find(config.reviewer.provider, config.reviewer.model);
 }
 
-export function createTimeoutSignal(parentSignal: AbortSignal | undefined, timeoutMs: number): {signal: AbortSignal; cleanup: () => void} {
+export function createTimeoutSignal(parentSignal: AbortSignal | undefined, timeoutMs: number): {signal: AbortSignal; cleanup: () => void; didTimeout: () => boolean} {
 	const controller = new AbortController();
+	let didExpire = false;
 	const timeout = setTimeout(() => {
+		didExpire = true;
 		controller.abort();
 	}, timeoutMs);
 	const abortFromParent = () => {
@@ -69,6 +88,7 @@ export function createTimeoutSignal(parentSignal: AbortSignal | undefined, timeo
 			clearTimeout(timeout);
 			parentSignal?.removeEventListener('abort', abortFromParent);
 		},
+		didTimeout: () => didExpire,
 	};
 }
 
@@ -99,8 +119,8 @@ async function resolveModel(context: ReviewerContext, config: AgentReviewConfig)
 type CompleteResponse = Awaited<ReturnType<typeof complete>>;
 
 function parseResponse<T>(response: CompleteResponse, call: ModelCall<T>, cost: number): ModelCallResult<T> {
-	if (response.stopReason === 'error' || response.stopReason === 'aborted') {
-		return {ok: false, error: `Reviewer request failed (${response.stopReason}): ${response.errorMessage ?? 'unknown error'}`, cost};
+	if (response.stopReason === 'error') {
+		return {ok: false, error: `Reviewer request failed: ${response.errorMessage ?? 'unknown error'}`, cost};
 	}
 
 	const toolCall = response.content.find((part): part is ToolCall => part.type === 'toolCall' && part.name === call.tool.name);
@@ -140,8 +160,16 @@ export async function callReviewModel<T>(context: ReviewerContext, config: Agent
 				apiKey: resolved.apiKey, headers: resolved.headers, maxTokens: 4096, signal: timeout.signal, ...((toolChoice !== undefined) && {toolChoice}),
 			},
 		);
+		if (response.stopReason === 'aborted') {
+			return abortedResult(timeout.didTimeout(), config.review.timeoutMs, reviewCost(response));
+		}
+
 		return parseResponse(response, call, reviewCost(response));
 	} catch (error: unknown) {
+		if (timeout.signal.aborted) {
+			return abortedResult(timeout.didTimeout(), config.review.timeoutMs, 0);
+		}
+
 		return {ok: false, error: `Reviewer request failed: ${errorMessage(error)}`, cost: 0};
 	} finally {
 		timeout.cleanup();

@@ -23,12 +23,22 @@ describe('extractTextResponse', () => {
 });
 
 describe('createTimeoutSignal', () => {
-	it('creates an aborting timeout signal', async () => {
-		const {signal, cleanup} = createTimeoutSignal(undefined, 1);
+	it('creates an aborting timeout signal and reports the expiry', async () => {
+		const {signal, cleanup, didTimeout} = createTimeoutSignal(undefined, 1);
 		await new Promise(resolve => {
 			setTimeout(resolve, 5);
 		});
 		expect(signal.aborted).toBe(true);
+		expect(didTimeout()).toBe(true);
+		cleanup();
+	});
+
+	it('distinguishes a parent abort from a timeout', () => {
+		const parent = new AbortController();
+		const {signal, cleanup, didTimeout} = createTimeoutSignal(parent.signal, 10_000);
+		parent.abort();
+		expect(signal.aborted).toBe(true);
+		expect(didTimeout()).toBe(false);
 		cleanup();
 	});
 });

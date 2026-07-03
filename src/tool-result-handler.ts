@@ -42,12 +42,7 @@ export function createToolResultHandler(pi: ExtensionAPI, state: RuntimeState) {
 		state.sessionCost += review.cost;
 
 		if (!review.ok) {
-			postReviewMessage(pi, state, context, {
-				kind: 'block',
-				summary: `Output withheld: ${event.toolName}`,
-				detail: `Output review withheld ${event.toolName}: could not inspect (${review.error}). Cost: ${formatCost(review.cost)}`,
-			});
-			return withheldResult(`it could not be inspected (${review.error})`);
+			return withholdFailedReview(pi, state, context, event.toolName, review);
 		}
 
 		state.lastOutputReview = {
@@ -77,6 +72,19 @@ export function createToolResultHandler(pi: ExtensionAPI, state: RuntimeState) {
 		});
 		return undefined;
 	};
+}
+
+function withholdFailedReview(pi: ExtensionAPI, state: RuntimeState, context: ExtensionContext, toolName: string, review: {error: string; cost: number; aborted?: boolean}): WithheldResult {
+	if (review.aborted === true) {
+		return withheldResult('the turn was aborted during output review');
+	}
+
+	postReviewMessage(pi, state, context, {
+		kind: 'block',
+		summary: `Output withheld: ${toolName}`,
+		detail: `Output review withheld ${toolName}: could not inspect (${review.error}). Cost: ${formatCost(review.cost)}`,
+	});
+	return withheldResult(`it could not be inspected (${review.error})`);
 }
 
 function withheldResult(reason: string): WithheldResult {

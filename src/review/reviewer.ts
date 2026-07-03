@@ -9,7 +9,7 @@ import {callReviewModel, type ReviewerContext} from './model-call.ts';
 import type {ReviewRequest} from './normalize-tool-call.ts';
 import {parseReviewDecision, validateDecision, type ReviewDecision} from './review-decision.ts';
 
-export type ReviewerResult = {ok: true; value: ReviewDecision; cost: number} | {ok: false; error: string; cost: number};
+export type ReviewerResult = {ok: true; value: ReviewDecision; cost: number} | {ok: false; error: string; cost: number; aborted?: boolean};
 
 const decisionToolName = 'submit_review_decision';
 

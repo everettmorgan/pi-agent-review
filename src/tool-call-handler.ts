@@ -135,6 +135,11 @@ export function createToolCallHandler(pi: ExtensionAPI, state: RuntimeState, led
 
 function dispatchOutcome(deps: Deps, toolName: string, approval: PendingApproval | undefined, review: ReviewerResult): ToolCallEventResult | undefined {
 	if (!review.ok) {
+		if (review.aborted === true) {
+			deps.state.lastDecision = undefined;
+			return {block: true, reason: 'Agent Review blocked this tool call because the turn was aborted during review.'};
+		}
+
 		return onFailure(deps, toolName, review.error, review.cost);
 	}
 

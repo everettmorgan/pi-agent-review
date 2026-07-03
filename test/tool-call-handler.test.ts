@@ -213,6 +213,21 @@ describe('createToolCallHandler', () => {
 		expect(isPending(ledger, 'read')).toBe(true);
 	});
 
+	it('blocks quietly when the turn is aborted during review: no chat message, no denial counted', async () => {
+		performReviewMock.mockResolvedValue({
+			ok: false, error: 'The turn was aborted while review was in progress.', aborted: true, cost: 0,
+		});
+		const state = createRuntimeState();
+		const {pi, sendMessage} = makePi();
+		const handler = createToolCallHandler(pi, state, new ApprovalLedger());
+
+		const result = await handler(makeEvent(), makeContext().context);
+
+		expect(result).toMatchObject({block: true, reason: expect.stringContaining('aborted') as string});
+		expect(sendMessage).not.toHaveBeenCalled();
+		expect(state.tracker.snapshot().consecutiveDenials).toBe(0);
+	});
+
 	it('blocks on reviewer failure', async () => {
 		performReviewMock.mockResolvedValue({ok: false, error: 'timeout', cost: 0});
 		const state = createRuntimeState();

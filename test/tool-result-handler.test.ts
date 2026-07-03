@@ -108,6 +108,20 @@ describe('createToolResultHandler', () => {
 		expect(lastLog(sendMessage)).toContain('could not inspect');
 	});
 
+	it('withholds quietly when the turn is aborted during output review', async () => {
+		reviewOutputMock.mockResolvedValue({
+			ok: false, error: 'The turn was aborted while review was in progress.', aborted: true, cost: 0,
+		});
+		const state = createRuntimeState();
+		const {pi, sendMessage} = makePi();
+
+		const result = await createToolResultHandler(pi, state)(makeEvent('some output'), makeContext().context);
+
+		expect(result?.isError).toBe(true);
+		expect(result?.content[0].text).toContain('aborted');
+		expect(sendMessage).not.toHaveBeenCalled();
+	});
+
 	it('skips review when output review is turned off in config', async () => {
 		loadConfigMock.mockResolvedValue({ok: true, value: {reviewer: {}, review: {reviewOutput: false}}});
 		const state = createRuntimeState();
