@@ -114,12 +114,13 @@ describe('createToolCallHandler', () => {
 
 		expect(result).toBeUndefined();
 		expect(state.lastDecision).toMatchObject({decision: 'approve', toolName: 'bash'});
-		const [message] = sendMessage.mock.calls[0] as [{customType: string; content: string; display: boolean; details: {message: string}}];
+		const [message] = sendMessage.mock.calls[0] as [{customType: string; content: string; display: boolean; details: {summary: string; message: string}}];
 		expect(message.customType).toBe('agent-review-log');
 		expect(message.display).toBe(true);
 		expect(message.content).toBe('Agent Review: Approved: bash');
 		expect(message.content).not.toContain('safe and scoped');
 		expect(message.details.message).toContain('safe and scoped');
+		expect(message.details.summary).toBe('Approved: bash');
 	});
 
 	it('blocks a reviewer-denied call with request_user_approval guidance', async () => {

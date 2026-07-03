@@ -69,9 +69,10 @@ one-shot invariant holds even when the reviewer omits the report. Each grant
 authorizes one execution: consumed nonces stay dead across retries and session
 forks for the life of the process, and never override hard-safety denials.
 
-**Logging.** Every review posts a message into the chat with the full verdict
-and reasoning. The reasoning is display-only; the model sees just a terse
-one-line summary (for example `Agent Review: Approved: bash`). A footer status
+**Logging.** Every review posts a single collapsed line into the chat (for
+example `Agent Review: Approved: bash`); ctrl+o expands it to the full verdict
+with reasoning and cost. The reasoning is display-only; the model sees just
+the terse summary line. A footer status
 segment always shows the review state: `review on` before any reviews run, a
 running tally with session cost once they do (`review ✓12 ✗2 $0.43`), and
 `review off` while the session toggle is off. The latest request/output
