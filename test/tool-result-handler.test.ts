@@ -112,9 +112,9 @@ describe('createToolResultHandler', () => {
 		expect(reviewOutputMock).not.toHaveBeenCalled();
 	});
 
-	it('skips review when the session has review disabled', async () => {
+	it('skips review when disabled for the session', async () => {
 		const state = createRuntimeState();
-		state.reviewState = {isReviewEnabled: false};
+		state.isReviewEnabled = false;
 
 		const result = await createToolResultHandler(makePi().pi, state)(makeEvent('anything'), makeContext().context);
 

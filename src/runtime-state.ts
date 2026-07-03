@@ -1,6 +1,5 @@
 import {defaultConfig} from './config.ts';
 import {DenialTracker} from './denial-tracker.ts';
-import {defaultSessionReviewState, type SessionReviewState} from './session-state.ts';
 
 export type LastDecision = {
 	toolName: string;
@@ -22,7 +21,11 @@ export type RuntimeState = {
 	tracker: DenialTracker;
 	lastDecision: LastDecision | undefined;
 	lastOutputReview: LastOutputReview | undefined;
-	reviewState: SessionReviewState;
+	// Session on/off switch. Deliberately plain in-memory process state, never
+	// persisted to or re-synced from the session branch: branch entries don't
+	// survive retries, forks, or /new within the same pi process, which made
+	// the old branch-synced toggle silently re-enable itself.
+	isReviewEnabled: boolean;
 	sessionCost: number;
 };
 
@@ -31,7 +34,7 @@ export function createRuntimeState(): RuntimeState {
 		tracker: new DenialTracker(defaultConfig.review),
 		lastDecision: undefined,
 		lastOutputReview: undefined,
-		reviewState: defaultSessionReviewState,
+		isReviewEnabled: true,
 		sessionCost: 0,
 	};
 }

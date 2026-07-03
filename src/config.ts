@@ -66,18 +66,21 @@ async function exists(filePath: string): Promise<boolean> {
 
 // Copy only known fields from the (untrusted) parsed config, so legacy or
 // unexpected keys are dropped rather than carried through and later persisted.
+function mergeReview(review: Partial<ReviewConfig>): ReviewConfig {
+	return {
+		reviewInput: review.reviewInput ?? defaultConfig.review.reviewInput,
+		reviewOutput: review.reviewOutput ?? defaultConfig.review.reviewOutput,
+		timeoutMs: review.timeoutMs ?? defaultConfig.review.timeoutMs,
+		denyOnReviewerFailure: true,
+		consecutiveDenialLimit: review.consecutiveDenialLimit ?? defaultConfig.review.consecutiveDenialLimit,
+		rollingDenialLimit: review.rollingDenialLimit ?? defaultConfig.review.rollingDenialLimit,
+	};
+}
+
 function mergeConfig(input: PartialConfig): AgentReviewConfig {
-	const review = input.review ?? {};
 	const reviewer = input.reviewer ?? {};
 	return {
-		review: {
-			reviewInput: review.reviewInput ?? defaultConfig.review.reviewInput,
-			reviewOutput: review.reviewOutput ?? defaultConfig.review.reviewOutput,
-			timeoutMs: review.timeoutMs ?? defaultConfig.review.timeoutMs,
-			denyOnReviewerFailure: true,
-			consecutiveDenialLimit: review.consecutiveDenialLimit ?? defaultConfig.review.consecutiveDenialLimit,
-			rollingDenialLimit: review.rollingDenialLimit ?? defaultConfig.review.rollingDenialLimit,
-		},
+		review: mergeReview(input.review ?? {}),
 		reviewer: {
 			type: 'direct-model',
 			provider: reviewer.provider ?? defaultConfig.reviewer.provider,

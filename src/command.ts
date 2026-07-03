@@ -1,5 +1,4 @@
 import type {
-	ExtensionAPI,
 	ExtensionCommandContext,
 	RegisteredCommand,
 } from '@earendil-works/pi-coding-agent';
@@ -16,13 +15,11 @@ import {errorMessage} from './shared/guards.ts';
 import {normalizeToolCall} from './review/normalize-tool-call.ts';
 import {formatCost, formatOutcome, performReview} from './review/run-review.ts';
 import type {RuntimeState} from './runtime-state.ts';
-import {agentReviewStateEntryType, makeReviewStateEntryData} from './session-state.ts';
 
 const usage = 'Usage: /agent-review status | on | off | config | input on|off | output on|off | model [current|provider/model] | test <tool-name> <json-args>';
 
-function handleToggle(pi: ExtensionAPI, state: RuntimeState, context: ExtensionCommandContext, isEnabled: boolean): void {
-	state.reviewState = makeReviewStateEntryData(isEnabled);
-	pi.appendEntry(agentReviewStateEntryType, state.reviewState);
+function handleToggle(state: RuntimeState, context: ExtensionCommandContext, isEnabled: boolean): void {
+	state.isReviewEnabled = isEnabled;
 	context.ui.notify(`Agent Review ${isEnabled ? 'enabled' : 'disabled'} for this session.`, 'info');
 }
 
@@ -150,7 +147,7 @@ function renderStatus(state: RuntimeState, config: ConfigResult): string {
 	];
 	if (config.ok) {
 		statusLines.push(
-			`Enabled for session: ${String(state.reviewState.isReviewEnabled)}`,
+			`Enabled for session: ${String(state.isReviewEnabled)}`,
 			`Review inputs: ${String(config.value.review.reviewInput)}`,
 			`Review outputs: ${String(config.value.review.reviewOutput)}`,
 			`Reviewer: ${config.value.reviewer.provider}/${config.value.reviewer.model}`,
@@ -203,9 +200,9 @@ function renderStatus(state: RuntimeState, config: ConfigResult): string {
 }
 
 // Subcommands that don't need the config file. Returns whether one matched.
-async function runSessionSubcommand(pi: ExtensionAPI, state: RuntimeState, context: ExtensionCommandContext, trimmed: string): Promise<boolean> {
+async function runToggleSubcommand(state: RuntimeState, context: ExtensionCommandContext, trimmed: string): Promise<boolean> {
 	if (trimmed === 'on' || trimmed === 'off') {
-		handleToggle(pi, state, context, trimmed === 'on');
+		handleToggle(state, context, trimmed === 'on');
 		return true;
 	}
 
@@ -238,12 +235,12 @@ async function runConfigSubcommand(state: RuntimeState, context: ExtensionComman
 	}
 }
 
-export function createAgentReviewCommand(pi: ExtensionAPI, state: RuntimeState): Omit<RegisteredCommand, 'name' | 'sourceInfo'> {
+export function createAgentReviewCommand(state: RuntimeState): Omit<RegisteredCommand, 'name' | 'sourceInfo'> {
 	return {
 		description: 'Show Agent Review status or test a tool call review.',
 		async handler(commandArguments, context) {
 			const trimmed = commandArguments.trim();
-			if (!(await runSessionSubcommand(pi, state, context, trimmed))) {
+			if (!(await runToggleSubcommand(state, context, trimmed))) {
 				await runConfigSubcommand(state, context, trimmed);
 			}
 		},

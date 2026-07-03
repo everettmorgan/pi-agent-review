@@ -53,8 +53,28 @@ describe('registerApprovalTool', () => {
 		expect(pending?.expiresAt).toBeGreaterThan(Date.now());
 		expect(pending?.approvedAction).toContain('npm install left-pad');
 		expect(pending?.approvedAction).toContain('Install dependency');
+		expect(pending?.inputJson).toContain('npm install left-pad');
+		expect(pending?.cwd).toBe('/repo');
 		expect(appendEntry).toHaveBeenCalledWith('agent-review-approval', pending);
 		expect(result.content[0]).toMatchObject({text: expect.stringContaining('User approved bash') as string});
+	});
+
+	it('refuses to request approval for hard-gated actions without prompting the user', async () => {
+		const {appendEntry, ledger, tool} = setup();
+		const context = makeContext(true, true) as {ui: {confirm: ReturnType<typeof vi.fn>}};
+
+		const result = await tool.execute(
+			'call-1',
+			{toolName: 'read', input: {path: '.env'}, reason: 'Need the config'},
+			undefined,
+			undefined,
+			context as never,
+		);
+
+		expect(context.ui.confirm).not.toHaveBeenCalled();
+		expect(ledger.findPendingForTool('read', Date.now())).toBeUndefined();
+		expect(appendEntry).not.toHaveBeenCalled();
+		expect(result.content[0]).toMatchObject({text: expect.stringContaining('categorically blocked') as string});
 	});
 
 	it('records nothing when the user declines', async () => {

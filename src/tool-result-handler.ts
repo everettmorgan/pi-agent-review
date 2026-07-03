@@ -18,7 +18,7 @@ type WithheldResult = {isError: true; content: Array<{type: 'text'; text: string
 
 export function createToolResultHandler(pi: ExtensionAPI, state: RuntimeState) {
 	return async (event: ToolResultEvent, context: ExtensionContext): Promise<WithheldResult | undefined> => {
-		if (!state.reviewState.isReviewEnabled || event.toolName === approvalToolName || event.isError) {
+		if (!state.isReviewEnabled || event.toolName === approvalToolName || event.isError) {
 			return undefined;
 		}
 

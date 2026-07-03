@@ -4,11 +4,27 @@ export type ReviewDecision = {
 	decision: 'approve' | 'deny';
 	rationale: string;
 	saferAlternative?: string;
+	// When a user approval was in play: whether the proposed call matched the
+	// approved action. Grants are consumed only on a reported match, so an
+	// unrelated same-tool call can't burn the user's approval.
+	matchedApproval?: boolean;
 };
 
 export type DecisionParseResult = {ok: true; value: ReviewDecision} | {ok: false; error: string};
 
 const noWorkaroundGuidance = 'Do not pursue the same outcome through workaround, indirect execution, or policy circumvention. If you believe the user wants this action, call the request_user_approval tool with the exact tool name and input, then retry the identical call after approval. Otherwise continue with a materially safer alternative, or stop.';
+
+function validateOptionalFields(value: Record<string, unknown>): string | undefined {
+	if (value.saferAlternative !== undefined && typeof value.saferAlternative !== 'string') {
+		return 'Reviewer saferAlternative must be a string.';
+	}
+
+	if (value.matchedApproval !== undefined && typeof value.matchedApproval !== 'boolean') {
+		return 'Reviewer matchedApproval must be a boolean.';
+	}
+
+	return undefined;
+}
 
 export function validateDecision(value: unknown): DecisionParseResult {
 	if (!isRecord(value)) {
@@ -23,8 +39,9 @@ export function validateDecision(value: unknown): DecisionParseResult {
 		return {ok: false, error: 'Reviewer rationale is required.'};
 	}
 
-	if (value.saferAlternative !== undefined && typeof value.saferAlternative !== 'string') {
-		return {ok: false, error: 'Reviewer saferAlternative must be a string.'};
+	const optionalFieldError = validateOptionalFields(value);
+	if (optionalFieldError !== undefined) {
+		return {ok: false, error: optionalFieldError};
 	}
 
 	return {
@@ -32,7 +49,8 @@ export function validateDecision(value: unknown): DecisionParseResult {
 		value: {
 			decision: value.decision,
 			rationale: value.rationale,
-			...((value.saferAlternative !== undefined) && {saferAlternative: value.saferAlternative}),
+			...(typeof value.saferAlternative === 'string' && {saferAlternative: value.saferAlternative}),
+			...(typeof value.matchedApproval === 'boolean' && {matchedApproval: value.matchedApproval}),
 		},
 	};
 }

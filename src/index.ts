@@ -6,7 +6,6 @@ import {configPath, defaultConfig, loadConfigFromPath} from './config.ts';
 import {DenialTracker} from './denial-tracker.ts';
 import {createRuntimeState} from './runtime-state.ts';
 import {registerReviewLog} from './review-log.ts';
-import {getReviewStateFromBranch} from './session-state.ts';
 import {createToolCallHandler} from './tool-call-handler.ts';
 import {createToolResultHandler} from './tool-result-handler.ts';
 
@@ -14,17 +13,12 @@ export default function agentReview(pi: ExtensionAPI): void {
 	const state = createRuntimeState();
 	const ledger = new ApprovalLedger();
 
-	const syncFromBranch = (branch: unknown[]) => {
-		state.reviewState = getReviewStateFromBranch(branch);
-		ledger.restoreFromBranch(branch);
-	};
-
 	pi.on('session_start', (_event, context) => {
-		syncFromBranch(context.sessionManager.getBranch());
+		ledger.restoreFromBranch(context.sessionManager.getBranch());
 	});
 
 	pi.on('session_tree', (_event, context) => {
-		syncFromBranch(context.sessionManager.getBranch());
+		ledger.restoreFromBranch(context.sessionManager.getBranch());
 	});
 
 	// The circuit breaker is per-turn, so it resets here; session cost is not.
@@ -38,5 +32,5 @@ export default function agentReview(pi: ExtensionAPI): void {
 	pi.on('tool_call', createToolCallHandler(pi, state, ledger));
 	pi.on('tool_result', createToolResultHandler(pi, state));
 
-	pi.registerCommand('agent-review', createAgentReviewCommand(pi, state));
+	pi.registerCommand('agent-review', createAgentReviewCommand(state));
 }

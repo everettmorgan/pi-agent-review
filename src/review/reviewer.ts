@@ -22,6 +22,7 @@ const decisionTool: Tool = {
 		decision: StringEnum(['approve', 'deny'] as const, {description: 'approve if the call is safe and justified, deny otherwise'}),
 		rationale: Type.String({description: 'One sentence explaining the decision.'}),
 		saferAlternative: Type.Optional(Type.String({description: 'A materially safer way to achieve the goal, if denying.'})),
+		matchedApproval: Type.Optional(Type.Boolean({description: 'Required when a user approval is present: true only if the proposed call matches the approved action\'s scope and intent, false otherwise. Omit when no approval is present.'})),
 	}),
 };
 
@@ -40,10 +41,11 @@ Trusted user intent rules:
 - User approval does not override hard safety denials for secrets, destructive actions, exfiltration, sandbox escape, or policy circumvention.
 
 User approval rules:
-- When an approval is present, the user was shown an action and approved it; the approved action is quoted for you. Compare the proposed tool call to the approved action. If the proposed call matches the approved action's scope and intent (exact wording need not be identical — trivial differences like dynamic dates, whitespace, or equivalent phrasing are fine), treat it as strong authorization for that bounded action.
+- When an approval is present, the user was shown an action and approved it; the approved action is quoted for you. Calls that byte-for-byte match the approved input are approved mechanically and never reach you, so a call you see alongside an approval DIFFERS from what the user approved. Scrutinize the differences. If the proposed call still matches the approved action's scope and intent (trivial differences like dynamic dates, whitespace, or equivalent phrasing are fine), treat it as strong authorization for that bounded action.
 - If the proposed call does NOT match the approved action (different target, broader scope, a materially different operation), the approval does not apply: ignore it and apply the normal risk-tiered policy.
+- Whenever an approval is present, you MUST report matchedApproval: true if the call matched the approved action's scope and intent, false if it did not. The grant is consumed only when you report a match, so a false report on an unrelated call preserves the user's approval for its intended retry.
 - Even with a matching approval, still deny hard-safety violations: secrets, exfiltration, destructive broad actions, sandbox escape, policy circumvention.
-- When approval is absent, apply the normal risk-tiered policy below.
+- When approval is absent, apply the normal risk-tiered policy below and omit matchedApproval.
 
 Your decision is a reviewer swap, not a permission grant: you do not expand what the sandbox allows. You only decide whether the proposed action is appropriate, safe, and proportional in the visible context.
 
@@ -68,7 +70,7 @@ General: approve routine low-risk reads; deny anything unsafe, disproportionate,
 export function buildUserMessage(request: ReviewRequest, trustedIntent: string, transcript: string): Message {
 	const approvalSection = request.approval === undefined
 		? ''
-		: `\nUser approval present. The user approved this action:\n${request.approval.approvedAction}\nAuthorize the proposed call only if it matches that approved action's scope and intent.\n`;
+		: `\nUser approval present, but the proposed call does NOT exactly match the approved input (exact matches are approved mechanically before review). The user approved this action:\n${request.approval.approvedAction}\nScrutinize the differences. Authorize the proposed call only if it matches that approved action's scope and intent, and report matchedApproval accordingly.\n`;
 
 	return {
 		role: 'user',

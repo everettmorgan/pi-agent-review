@@ -25,6 +25,17 @@ describe('parseReviewDecision', () => {
 		}
 	});
 
+	it('carries matchedApproval through when reported', () => {
+		expect(parseReviewDecision('{"decision":"approve","rationale":"Matches the grant.","matchedApproval":true}')).toEqual({
+			ok: true,
+			value: {decision: 'approve', rationale: 'Matches the grant.', matchedApproval: true},
+		});
+	});
+
+	it('rejects a non-boolean matchedApproval', () => {
+		expect(parseReviewDecision('{"decision":"approve","rationale":"ok","matchedApproval":"yes"}').ok).toBe(false);
+	});
+
 	it('rejects output with no JSON object', () => {
 		const result = parseReviewDecision('I cannot decide, no structured output here.');
 

@@ -56,7 +56,7 @@ function renderMenu(listContainer: Container, scope: Scope, selectedIndex: numbe
 // Interactive toggle menu for which review stages are enabled. Returns the chosen
 // scope, or undefined if the user cancels without changing anything.
 export async function openConfigMenu(context: UiContext, config: AgentReviewConfig): Promise<ReviewScope | undefined> {
-	const scope: Required<ReviewScope> = {
+	const scope: Scope = {
 		reviewInput: config.review.reviewInput,
 		reviewOutput: config.review.reviewOutput,
 	};

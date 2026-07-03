@@ -9,13 +9,13 @@ const now = 1_000_000;
 
 function approvalFor(toolName: string, nonce: string, createdAt = now): PendingApproval {
 	return {
-		nonce, toolName, approvedAction: `Tool: ${toolName}`, expiresAt: createdAt + approvalTtlMs,
+		nonce, toolName, inputJson: `{"tool":"${toolName}"}`, cwd: '/repo', approvedAction: `Tool: ${toolName}`, expiresAt: createdAt + approvalTtlMs,
 	};
 }
 
 describe('ApprovalLedger', () => {
 	it('starts empty', () => {
-		expect(new ApprovalLedger().snapshot()).toEqual({pending: [], consumed: 0});
+		expect(new ApprovalLedger().snapshot(now)).toEqual({pending: [], consumed: 0});
 	});
 
 	it('finds a live approval by tool name', () => {
@@ -41,7 +41,28 @@ describe('ApprovalLedger', () => {
 		ledger.record(approvalFor('bash', 'n1'));
 		expect(ledger.consume('n1')).toBe(true);
 		expect(ledger.findPendingForTool('bash', now)).toBeUndefined();
-		expect(ledger.snapshot().consumed).toBe(1);
+		expect(ledger.snapshot(now).consumed).toBe(1);
+	});
+
+	it('finds an exact match on tool, input, and cwd', () => {
+		const ledger = new ApprovalLedger();
+		ledger.record(approvalFor('bash', 'n1'));
+		expect(ledger.findExactMatch('bash', '{"tool":"bash"}', '/repo', now)?.nonce).toBe('n1');
+	});
+
+	it('does not exact-match a different input, cwd, or expired grant', () => {
+		const ledger = new ApprovalLedger();
+		ledger.record(approvalFor('bash', 'n1'));
+		expect(ledger.findExactMatch('bash', '{"tool":"other"}', '/repo', now)).toBeUndefined();
+		expect(ledger.findExactMatch('bash', '{"tool":"bash"}', '/elsewhere', now)).toBeUndefined();
+		expect(ledger.findExactMatch('bash', '{"tool":"bash"}', '/repo', now + approvalTtlMs + 1)).toBeUndefined();
+	});
+
+	it('excludes expired grants from the snapshot', () => {
+		const ledger = new ApprovalLedger();
+		ledger.record(approvalFor('bash', 'n1'));
+		expect(ledger.snapshot(now).pending).toEqual(['bash']);
+		expect(ledger.snapshot(now + approvalTtlMs + 1).pending).toEqual([]);
 	});
 
 	it('binds a grant to one execution even when the tool is used again', () => {
@@ -78,7 +99,32 @@ describe('ApprovalLedger', () => {
 			{type: 'custom', customType: 'agent-review-consumption', data: {nonce: 'n1'}},
 		]);
 		expect(ledger.findPendingForTool('bash', now)).toBeUndefined();
-		expect(ledger.snapshot().consumed).toBe(1);
+		expect(ledger.snapshot(now).consumed).toBe(1);
+	});
+
+	it('does not resurrect a consumed grant when restoring a branch that predates the consumption', () => {
+		const ledger = new ApprovalLedger();
+		const approvalEntry = {type: 'custom', customType: 'agent-review-approval', data: approvalFor('bash', 'n1')};
+		ledger.restoreFromBranch([approvalEntry]);
+		ledger.consume('n1');
+
+		// A fork/retry branch that contains the approval but not its consumption.
+		ledger.restoreFromBranch([approvalEntry]);
+
+		expect(ledger.findPendingForTool('bash', now)).toBeUndefined();
+	});
+
+	it('keeps a nonce dead across branches once any branch shows its consumption', () => {
+		const ledger = new ApprovalLedger();
+		const approvalEntry = {type: 'custom', customType: 'agent-review-approval', data: approvalFor('bash', 'n1')};
+		ledger.restoreFromBranch([
+			approvalEntry,
+			{type: 'custom', customType: 'agent-review-consumption', data: {nonce: 'n1'}},
+		]);
+
+		ledger.restoreFromBranch([approvalEntry]);
+
+		expect(ledger.findPendingForTool('bash', now)).toBeUndefined();
 	});
 
 	it('does not let an unrelated consumption drop a live grant', () => {

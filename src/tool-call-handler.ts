@@ -4,6 +4,7 @@ import type {
 	ToolCallEvent,
 	ToolCallEventResult,
 } from '@earendil-works/pi-coding-agent';
+import {stringify} from 'safe-stable-stringify';
 import {classifyToolCall} from './approval/approval-gate.ts';
 import {
 	consumptionEntryType,
@@ -14,6 +15,7 @@ import {approvalToolName} from './approval/approval-tool.ts';
 import {configPath, loadConfigFromPath} from './config.ts';
 import {normalizeToolCall} from './review/normalize-tool-call.ts';
 import {formatDenialReason, formatReviewerFailureReason, type ReviewDecision} from './review/review-decision.ts';
+import type {ReviewerResult} from './review/reviewer.ts';
 import {formatCost, formatOutcome, performReview} from './review/run-review.ts';
 import {appendReviewLog} from './review-log.ts';
 import type {RuntimeState} from './runtime-state.ts';
@@ -48,10 +50,16 @@ function onDeny(deps: Deps, toolName: string, decision: ReviewDecision, cost: nu
 	return recordDenialAndBlock(deps.state, formatDenialReason(decision), cost);
 }
 
+function consumeGrant(deps: Deps, approval: PendingApproval): void {
+	deps.ledger.consume(approval.nonce);
+	deps.pi.appendEntry(consumptionEntryType, {nonce: approval.nonce});
+}
+
 function onApprove(deps: Deps, toolName: string, approval: PendingApproval | undefined, decision: ReviewDecision, cost: number): void {
-	if (approval !== undefined) {
-		deps.ledger.consume(approval.nonce);
-		deps.pi.appendEntry(consumptionEntryType, {nonce: approval.nonce});
+	// Consume only when the reviewer says this call matched the approved
+	// action, so an unrelated same-tool call can't burn the user's grant.
+	if (approval !== undefined && decision.matchedApproval === true) {
+		consumeGrant(deps, approval);
 	}
 
 	deps.state.tracker.recordApproved();
@@ -61,12 +69,24 @@ function onApprove(deps: Deps, toolName: string, approval: PendingApproval | und
 	appendReviewLog(deps.pi, formatOutcome('Approved', toolName, decision.rationale, cost));
 }
 
+// The user saw and approved this exact tool, input, and cwd: mechanical proof
+// that needs no reviewer judgment (the hard gate has already run).
+function onExactApproval(deps: Deps, toolName: string, approval: PendingApproval): void {
+	consumeGrant(deps, approval);
+	deps.state.tracker.recordApproved();
+	const rationale = 'Exactly matches an action the user approved.';
+	deps.state.lastDecision = {
+		toolName, decision: 'approve', rationale, cost: 0,
+	};
+	appendReviewLog(deps.pi, formatOutcome('Approved', toolName, rationale, 0));
+}
+
 export function createToolCallHandler(pi: ExtensionAPI, state: RuntimeState, ledger: ApprovalLedger) {
 	const deps: Deps = {pi, state, ledger};
 	return async (event: ToolCallEvent, context: ExtensionContext): Promise<ToolCallEventResult | undefined> => {
 		// Checked before config load so a malformed config can't brick the off
 		// switch or the request_user_approval escape hatch.
-		if (!state.reviewState.isReviewEnabled || event.toolName === approvalToolName) {
+		if (!state.isReviewEnabled || event.toolName === approvalToolName) {
 			state.lastDecision = undefined;
 			return undefined;
 		}
@@ -89,22 +109,32 @@ export function createToolCallHandler(pi: ExtensionAPI, state: RuntimeState, led
 			return {block: true, reason: `Agent Review blocked this tool call: ${gateResult.reason}`};
 		}
 
+		const exactApproval = ledger.findExactMatch(event.toolName, stringify(event.input), context.cwd, Date.now());
+		if (exactApproval !== undefined) {
+			onExactApproval(deps, event.toolName, exactApproval);
+			return undefined;
+		}
+
 		// Peek without consuming so the grant survives a reviewer failure or
-		// denial and the agent can retry. Consumed (by nonce) only on approve.
+		// denial and the agent can retry. Consumed (by nonce) only when the
+		// reviewer approves AND reports the call matched the grant.
 		const approval = ledger.findPendingForTool(event.toolName, Date.now());
 		const approvalState = approval === undefined ? undefined : {status: 'approved_by_user' as const, approvedAction: approval.approvedAction};
 		const review = await performReview(context, configResult.value, normalizeToolCall(call, approvalState === undefined ? {} : {approval: approvalState}));
 		state.sessionCost += review.cost;
-
-		if (!review.ok) {
-			return onFailure(deps, event.toolName, review.error, review.cost);
-		}
-
-		if (review.value.decision === 'deny') {
-			return onDeny(deps, event.toolName, review.value, review.cost);
-		}
-
-		onApprove(deps, event.toolName, approval, review.value, review.cost);
-		return undefined;
+		return dispatchOutcome(deps, event.toolName, approval, review);
 	};
+}
+
+function dispatchOutcome(deps: Deps, toolName: string, approval: PendingApproval | undefined, review: ReviewerResult): ToolCallEventResult | undefined {
+	if (!review.ok) {
+		return onFailure(deps, toolName, review.error, review.cost);
+	}
+
+	if (review.value.decision === 'deny') {
+		return onDeny(deps, toolName, review.value, review.cost);
+	}
+
+	onApprove(deps, toolName, approval, review.value, review.cost);
+	return undefined;
 }

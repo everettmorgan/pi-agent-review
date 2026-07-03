@@ -2,6 +2,7 @@ import {randomUUID} from 'node:crypto';
 import type {ExtensionAPI} from '@earendil-works/pi-coding-agent';
 import {stringify} from 'safe-stable-stringify';
 import {Type} from 'typebox';
+import {classifyToolCall} from './approval-gate.ts';
 import {
 	approvalEntryType,
 	approvalTtlMs,
@@ -26,6 +27,16 @@ export function registerApprovalTool(pi: ExtensionAPI, ledger: ApprovalLedger): 
 			reason: Type.String({description: 'One sentence explaining why this action is needed.'}),
 		}),
 		async execute(_toolCallId, params, _signal, _onUpdate, context) {
+			// The hard gate has no approval override, so asking the user would be
+			// a dead end: an approved retry would still be denied.
+			const gate = classifyToolCall({toolName: params.toolName, input: params.input, cwd: context.cwd});
+			if (gate.action === 'deny') {
+				return {
+					content: [{type: 'text', text: `Approval cannot be requested: ${gate.reason} This action is categorically blocked and user approval cannot override it. Do not ask again or pursue it another way.`}],
+					details: undefined,
+				};
+			}
+
 			if (!context.hasUI) {
 				return {
 					content: [{type: 'text', text: 'No interactive UI is available, so user approval cannot be requested. Stop and ask the user directly.'}],
@@ -52,6 +63,8 @@ export function registerApprovalTool(pi: ExtensionAPI, ledger: ApprovalLedger): 
 			const approval = {
 				nonce: randomUUID(),
 				toolName: params.toolName,
+				inputJson: serializedInput,
+				cwd: context.cwd,
 				approvedAction: `Tool: ${params.toolName}\nInput: ${serializedInput}\nReason: ${params.reason}`,
 				expiresAt: Date.now() + approvalTtlMs,
 			};
