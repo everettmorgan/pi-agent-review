@@ -108,7 +108,6 @@ describe('ApprovalLedger', () => {
 		ledger.restoreFromBranch([approvalEntry]);
 		ledger.consume('n1');
 
-		// A fork/retry branch that contains the approval but not its consumption.
 		ledger.restoreFromBranch([approvalEntry]);
 
 		expect(ledger.findPendingForTool('bash', now)).toBeUndefined();

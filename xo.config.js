@@ -1,7 +1,29 @@
-// Lint philosophy: prefer "boring", predictable code. Small functions, shallow
-// nesting, low branching, explicit control flow, no clever one-liners. The
-// complexity/size limits below are scoped to src/; test files relax them
-// because describe/it callbacks legitimately nest and grow.
+const directiveCommentPattern = /^\s*(?:eslint|@ts-|globals?\s|exported\s)/v;
+
+const selfDocumentingCode = {
+	rules: {
+		'no-comments': {
+			meta: {
+				type: 'suggestion',
+				docs: {description: 'Disallow comments; the code must document itself.'},
+				messages: {noComments: 'Comments are not allowed; make the code self-documenting (extract a well-named function, constant, or type instead). Non-code rationale belongs in docs/.'},
+				schema: [],
+			},
+			create(context) {
+				return {
+					Program() {
+						for (const comment of context.sourceCode.getAllComments()) {
+							if (!directiveCommentPattern.test(comment.value)) {
+								context.report({loc: comment.loc, messageId: 'noComments'});
+							}
+						}
+					},
+				};
+			},
+		},
+	},
+};
+
 const readabilityRules = {
 	complexity: ['error', 10],
 	'max-depth': ['error', 3],
@@ -18,8 +40,6 @@ const readabilityRules = {
 	'@typescript-eslint/consistent-type-definitions': ['error', 'type'],
 };
 
-// Type-aware safety rules: catch real bugs (unawaited promises, always-true
-// conditions, unsafe assertions) while keeping idiomatic undefined.
 const typeSafetyRules = {
 	'@typescript-eslint/no-floating-promises': 'error',
 	'@typescript-eslint/no-misused-promises': 'error',
@@ -49,6 +69,13 @@ export default [
 		ignores: ['**/*.md', 'docs/**', 'node_modules/**'],
 	},
 	{
+		files: ['**/*.ts', '**/*.js'],
+		plugins: {self: selfDocumentingCode},
+		rules: {
+			'self/no-comments': 'error',
+		},
+	},
+	{
 		files: ['**/*.ts'],
 		rules: {
 			...sharedRules,
@@ -63,7 +90,6 @@ export default [
 			'max-nested-callbacks': 'off',
 			'max-statements': 'off',
 			complexity: 'off',
-			// Tests use structural casts (as unknown as X) to build minimal fakes.
 			'@typescript-eslint/no-explicit-any': 'off',
 			'@typescript-eslint/no-unsafe-assignment': 'off',
 		},

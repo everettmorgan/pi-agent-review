@@ -70,6 +70,17 @@ The confirm dialog is the only trusted authorization surface, so
 agent-supplied text (tool name for display, reason) is flattened to one line,
 fence-neutralized, and length-capped, and the harness-authenticated
 Tool/Cwd/Args block renders first; input values cannot inject dialog lines
-because JSON serialization escapes newlines. The session on/off toggle re-arms
-on `session_start` with reason `new` or `resume` and survives `fork`, so
-disabling review cannot outlive the session it was meant for.
+because JSON serialization escapes newlines. The dialog always shows the FULL
+serialized input — truncating it would let the agent hide a dangerous suffix
+past the display limit while the recorded grant still covers the whole
+payload. The session on/off toggle re-arms on `session_start` with reason
+`new` or `resume` and survives `fork`, so disabling review cannot outlive the
+session it was meant for.
+
+The secret-path gate matches only high-confidence markers on path- and
+command-like keys (at any nesting depth). Content-ish keys (`old_string`,
+`content`) and ambiguous names are deliberately excluded: a gate false
+positive hard-blocks with no user-approval override, so prose that merely
+mentions `.env` must never deny; the LLM reviewer is the backstop for exotic
+shapes. The on/off state is checked before config load so a malformed config
+file cannot brick the off switch or the `request_user_approval` escape hatch.

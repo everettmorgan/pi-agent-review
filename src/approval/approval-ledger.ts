@@ -3,23 +3,13 @@ import {isCustomEntry, isRecord} from '../shared/guards.ts';
 export const approvalEntryType = 'agent-review-approval';
 export const consumptionEntryType = 'agent-review-consumption';
 
-// A user approval is valid only briefly, so the agent can retry the denied call
-// immediately but a coincidentally-similar call much later cannot reuse it.
 export const approvalTtlMs = 10 * 60 * 1000;
 
 export type PendingApproval = {
-	// Unique per approval; consumes exactly one grant and pairs an approval with
-	// its consumption across the session branch.
 	nonce: string;
-	// Matched to the next call of this tool; an exact input+cwd match is
-	// approved mechanically, otherwise the reviewer judges the call against
-	// approvedAction and reports whether it matched.
 	toolName: string;
-	// The exact serialized input and cwd the user approved, for mechanical
-	// exact-match approval without trusting the reviewer.
 	inputJson: string;
 	cwd: string;
-	// What the user approved (tool, input, reason), shown to the reviewer.
 	approvedAction: string;
 	expiresAt: number;
 };
@@ -32,21 +22,16 @@ export type LedgerSnapshot = {
 export class ApprovalLedger {
 	private pending: PendingApproval[] = [];
 	private consumed = 0;
-	// Process-lifetime kill list: a consumed nonce stays dead even when a
-	// fork/retry restores a branch that predates its consumption entry.
 	private readonly consumedNonces = new Set<string>();
 
 	record(approval: PendingApproval): void {
 		this.pending.push(approval);
 	}
 
-	// The oldest live (non-expired) approval for this tool, or undefined.
 	findPendingForTool(toolName: string, now: number): PendingApproval | undefined {
 		return this.pending.find(approval => approval.toolName === toolName && approval.expiresAt > now);
 	}
 
-	// A live grant whose serialized input and cwd equal the proposed call's:
-	// mechanical proof the user approved exactly this action.
 	findExactMatch(toolName: string, inputJson: string, cwd: string, now: number): PendingApproval | undefined {
 		return this.pending.find(approval =>
 			approval.toolName === toolName
@@ -55,7 +40,6 @@ export class ApprovalLedger {
 			&& approval.expiresAt > now);
 	}
 
-	// Remove exactly one grant by its nonce. Returns whether one was removed.
 	consume(nonce: string): boolean {
 		const index = this.pending.findIndex(approval => approval.nonce === nonce);
 		if (index === -1) {
@@ -71,8 +55,6 @@ export class ApprovalLedger {
 	restoreFromBranch(branch: unknown[]): void {
 		this.consumed = 0;
 		const byNonce = new Map<string, PendingApproval>();
-		// Approvals filtered out by the kill list still count toward `consumed`
-		// when their consumption entry appears on this branch.
 		const killedOnSight = new Set<string>();
 
 		for (const entry of branch) {

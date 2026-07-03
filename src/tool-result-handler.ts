@@ -11,15 +11,10 @@ import {appendReviewLog} from './review-log.ts';
 import type {RuntimeState} from './runtime-state.ts';
 import {joinPartsForReview} from './shared/content.ts';
 
-// A confirmed leak withholds the output from the model and transcript and stops
-// the turn. The tool already ran, so we fail closed: if the reviewer can't run,
-// the unreviewed output is withheld too.
 type WithheldResult = {isError: true; content: Array<{type: 'text'; text: string}>};
 
 export function createToolResultHandler(pi: ExtensionAPI, state: RuntimeState) {
 	return async (event: ToolResultEvent, context: ExtensionContext): Promise<WithheldResult | undefined> => {
-		// Error results are NOT exempt: they still reach the model and can carry
-		// secrets (e.g. a leaking command that exits non-zero).
 		if (!state.isReviewEnabled || event.toolName === approvalToolName) {
 			return undefined;
 		}

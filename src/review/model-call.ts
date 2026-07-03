@@ -29,7 +29,6 @@ export type ModelCall<T> = {
 	messages: Message[];
 	tool: Tool;
 	parseToolArguments: (args: unknown) => ParseResult<T>;
-	// Optional fallback when the model answers in prose instead of a tool call.
 	parseTextFallback?: (text: string) => ParseResult<T>;
 };
 
@@ -124,8 +123,6 @@ function parseResponse<T>(response: CompleteResponse, call: ModelCall<T>, cost: 
 	};
 }
 
-// One constrained reviewer-model call: resolve and authenticate the model, call
-// it with a single forced decision tool under a timeout, and parse the result.
 export async function callReviewModel<T>(context: ReviewerContext, config: AgentReviewConfig, call: ModelCall<T>): Promise<ModelCallResult<T>> {
 	const resolved = await resolveModel(context, config);
 	if (!resolved.ok) {

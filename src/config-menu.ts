@@ -64,8 +64,6 @@ function renderMenu(listContainer: Container, scope: Scope, selectedIndex: numbe
 	listContainer.addChild(new Text(theme.fg('muted', `  ${toggles[selectedIndex].description}`), 0, 0));
 }
 
-// Interactive toggle menu for which review stages are enabled. Returns the chosen
-// scope, or undefined if the user cancels without changing anything.
 export async function openConfigMenu(context: UiContext, config: AgentReviewConfig): Promise<ReviewScope | undefined> {
 	const scope: Scope = {
 		reviewInput: config.review.reviewInput,

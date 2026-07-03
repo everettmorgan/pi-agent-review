@@ -4,9 +4,6 @@ export type ReviewDecision = {
 	decision: 'approve' | 'deny';
 	rationale: string;
 	saferAlternative?: string;
-	// When a user approval was in play: whether the proposed call matched the
-	// approved action. Grants are consumed only on a reported match, so an
-	// unrelated same-tool call can't burn the user's approval.
 	matchedApproval?: boolean;
 };
 

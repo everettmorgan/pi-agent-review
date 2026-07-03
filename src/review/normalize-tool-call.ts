@@ -8,7 +8,6 @@ export type NormalizeToolCallInput = {
 
 export type ApprovalState = {
 	status: 'approved_by_user';
-	// What the user approved, for the reviewer to compare against the proposed call.
 	approvedAction: string;
 };
 
@@ -33,8 +32,6 @@ export function truncateText(text: string, maxChars: number): string {
 	return `${text.slice(0, maxChars)}\n[truncated ${String(text.length - maxChars)} characters]`;
 }
 
-// Case- and whitespace-insensitive, so <UNTRUSTED_TRANSCRIPT > variants can't
-// slip through as a working fence closer.
 const closingFencePattern = /<\s*\/\s*(?<tag>untrusted_(?:tool_call|transcript|tool_output))\s*>/giv;
 const openingFencePattern = /<\s*(?<tag>untrusted_(?:tool_call|transcript|tool_output))\s*>/giv;
 

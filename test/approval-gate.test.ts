@@ -78,7 +78,6 @@ describe('classifyToolCall', () => {
 			nested = {wrapper: nested};
 		}
 
-		// Too deep to reach: allowed by the gate, left to the reviewer backstop.
 		expect(classifyToolCall({toolName: 'mcp', input: nested, cwd: '/repo'}).action).toBe('allow');
 	});
 });

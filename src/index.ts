@@ -14,8 +14,6 @@ export default function agentReview(pi: ExtensionAPI): void {
 	const ledger = new ApprovalLedger();
 
 	pi.on('session_start', (event, context) => {
-		// Re-arm review at genuine session boundaries; forks and retries keep
-		// the in-session toggle (the whole point of making it in-memory).
 		if (event.reason === 'new' || event.reason === 'resume') {
 			state.isReviewEnabled = true;
 		}
@@ -27,7 +25,6 @@ export default function agentReview(pi: ExtensionAPI): void {
 		ledger.restoreFromBranch(context.sessionManager.getBranch());
 	});
 
-	// The circuit breaker is per-turn, so it resets here; session cost is not.
 	pi.on('turn_start', async () => {
 		const config = await loadConfigFromPath(configPath);
 		state.tracker = new DenialTracker((config.ok ? config.value : defaultConfig).review);

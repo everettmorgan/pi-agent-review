@@ -49,9 +49,6 @@ function makeEvent(toolName = 'bash', input?: unknown): ToolCallEvent {
 	return {toolName, input: input ?? {command: 'npm test'}} as unknown as ToolCallEvent;
 }
 
-// Non-exact by default (inputJson differs from the event input), so the call
-// takes the reviewer path; pass inputJson/cwd overrides to exercise the
-// exact-match fast path.
 function grant(ledger: ApprovalLedger, event: ToolCallEvent, nonce = 'test-nonce', overrides: {inputJson?: string; cwd?: string} = {}): void {
 	ledger.record({
 		nonce,
@@ -183,8 +180,6 @@ describe('createToolCallHandler', () => {
 	});
 
 	it('consumes the grant when the reviewer approves without reporting matchedApproval', async () => {
-		// Fails toward the one-shot invariant: an ambiguous approve must not
-		// leave the grant authorizing further fuzzy retries.
 		performReviewMock.mockResolvedValue({ok: true, value: {decision: 'approve', rationale: 'fine'}, cost: 0});
 		const state = createRuntimeState();
 		const ledger = new ApprovalLedger();
@@ -236,7 +231,6 @@ describe('createToolCallHandler', () => {
 
 		await handler(event, makeContext().context);
 
-		// Approval survives so the agent can retry without re-prompting the user.
 		expect(isPending(ledger, 'bash')).toBe(true);
 		expect(appendEntry).not.toHaveBeenCalledWith('agent-review-consumption', expect.anything());
 	});

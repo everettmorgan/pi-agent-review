@@ -22,8 +22,6 @@ import type {RuntimeState} from './runtime-state.ts';
 
 type Deps = {pi: ExtensionAPI; state: RuntimeState; ledger: ApprovalLedger};
 
-// Record a denial against the circuit breaker and build the block result,
-// appending either the tripped-breaker reason or the review cost.
 function recordDenialAndBlock(state: RuntimeState, base: string, cost: number): ToolCallEventResult {
 	const circuit = state.tracker.recordDenied();
 	const suffix = circuit.tripped ? (circuit.reason ?? '') : `Review cost: ${formatCost(cost)}.`;
@@ -56,10 +54,6 @@ function consumeGrant(deps: Deps, approval: PendingApproval): void {
 }
 
 function onApprove(deps: Deps, toolName: string, approval: PendingApproval | undefined, decision: ReviewDecision, cost: number): void {
-	// Consume unless the reviewer explicitly reported the call as unrelated.
-	// An omitted matchedApproval fails toward the one-shot invariant: better
-	// to burn a grant on an ambiguous approve than to leave it authorizing
-	// further fuzzy retries for the rest of its TTL.
 	if (approval !== undefined && decision.matchedApproval !== false) {
 		consumeGrant(deps, approval);
 	}
@@ -71,8 +65,6 @@ function onApprove(deps: Deps, toolName: string, approval: PendingApproval | und
 	appendReviewLog(deps.pi, formatOutcome('Approved', toolName, decision.rationale, cost));
 }
 
-// The user saw and approved this exact tool, input, and cwd: mechanical proof
-// that needs no reviewer judgment (the hard gate has already run).
 function onExactApproval(deps: Deps, toolName: string, approval: PendingApproval): void {
 	consumeGrant(deps, approval);
 	deps.state.tracker.recordApproved();
@@ -86,8 +78,6 @@ function onExactApproval(deps: Deps, toolName: string, approval: PendingApproval
 export function createToolCallHandler(pi: ExtensionAPI, state: RuntimeState, ledger: ApprovalLedger) {
 	const deps: Deps = {pi, state, ledger};
 	return async (event: ToolCallEvent, context: ExtensionContext): Promise<ToolCallEventResult | undefined> => {
-		// Checked before config load so a malformed config can't brick the off
-		// switch or the request_user_approval escape hatch.
 		if (!state.isReviewEnabled || event.toolName === approvalToolName) {
 			state.lastDecision = undefined;
 			return undefined;
@@ -117,9 +107,6 @@ export function createToolCallHandler(pi: ExtensionAPI, state: RuntimeState, led
 			return undefined;
 		}
 
-		// Peek without consuming so the grant survives a reviewer failure or
-		// denial and the agent can retry. Consumed (by nonce) only when the
-		// reviewer approves AND reports the call matched the grant.
 		const approval = ledger.findPendingForTool(event.toolName, Date.now());
 		const approvalState = approval === undefined ? undefined : {status: 'approved_by_user' as const, approvedAction: approval.approvedAction};
 		const review = await performReview(context, configResult.value, normalizeToolCall(call, approvalState === undefined ? {} : {approval: approvalState}));

@@ -101,8 +101,6 @@ describe('registerApprovalTool', () => {
 		);
 
 		const [, message] = confirm.mock.calls[0] as [string, string];
-		// The authentic block leads; the agent's reason is flattened to one line
-		// so it cannot forge Tool/Args lines or flood the real ones off screen.
 		expect(message.startsWith('Tool: bash\nCwd: /repo\nArgs: ')).toBe(true);
 		const reasonSection = message.slice(message.indexOf('reason (unverified): '));
 		expect(reasonSection).not.toContain('\n');

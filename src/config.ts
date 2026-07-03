@@ -9,9 +9,7 @@ import path from 'node:path';
 import {errorMessage} from './shared/guards.ts';
 
 export type ReviewConfig = {
-	// Review proposed tool calls before they run (the request stage).
 	reviewInput: boolean;
-	// Review tool output for sensitive data after a call runs (the output stage).
 	reviewOutput: boolean;
 	timeoutMs: number;
 	denyOnReviewerFailure: true;
@@ -64,8 +62,6 @@ async function exists(filePath: string): Promise<boolean> {
 	}
 }
 
-// Copy only known fields from the (untrusted) parsed config, so legacy or
-// unexpected keys are dropped rather than carried through and later persisted.
 function mergeReview(review: Partial<ReviewConfig>): ReviewConfig {
 	return {
 		reviewInput: review.reviewInput ?? defaultConfig.review.reviewInput,

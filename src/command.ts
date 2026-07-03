@@ -32,8 +32,6 @@ async function handleModel(context: ExtensionCommandContext, config: ConfigResul
 	await applyModelSpec(context, spec);
 }
 
-// With no spec: outside a TUI just report the current model; inside a TUI open
-// the picker and apply the chosen model.
 async function showOrPickModel(context: ExtensionCommandContext, config: ConfigResult): Promise<void> {
 	if (context.mode !== 'tui') {
 		context.ui.notify(
@@ -199,7 +197,6 @@ function renderStatus(state: RuntimeState, config: ConfigResult): string {
 	return statusLines.join('\n');
 }
 
-// Subcommands that don't need the config file. Returns whether one matched.
 async function runToggleSubcommand(state: RuntimeState, context: ExtensionCommandContext, trimmed: string): Promise<boolean> {
 	if (trimmed === 'on' || trimmed === 'off') {
 		handleToggle(state, context, trimmed === 'on');
