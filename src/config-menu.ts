@@ -19,9 +19,20 @@ type KeybindingsLike = {
 
 type Theme = {fg(role: string, text: string): string};
 
+type CustomRenderer = {
+	render(width: number): string[];
+	invalidate(): void;
+	handleInput(data: string): void;
+};
+
 type UiContext = {
 	ui: {
-		custom<T>(render: (tui: {requestRender(): void}, theme: Theme, keybindings: KeybindingsLike, done: (value: T) => void) => {render(width: number): string[]; invalidate(): void; handleInput(data: string): void}): Promise<T>;
+		custom<T>(render: (
+			tui: {requestRender(): void},
+			theme: Theme,
+			keybindings: KeybindingsLike,
+			done: (value: T) => void,
+		) => CustomRenderer): Promise<T>;
 	};
 };
 

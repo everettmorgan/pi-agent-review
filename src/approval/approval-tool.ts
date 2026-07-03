@@ -18,7 +18,7 @@ export function registerApprovalTool(pi: ExtensionAPI, ledger: ApprovalLedger): 
 		description: 'Ask the user to confirm a tool call that Agent Review denied. Pass the tool name and input you intend to run. If the user approves, retry that action.',
 		promptSnippet: 'request_user_approval: ask the user to confirm a tool call that Agent Review denied',
 		promptGuidelines: [
-			'When Agent Review denies a tool call the user appears to want, call request_user_approval with the tool name, input, and a clear reason, then retry the same action after the user approves.',
+			'When Agent Review denies a tool call the user wants, call request_user_approval with the tool name, input, and a clear reason, then retry the same action after the user approves.',
 			'Each approval authorizes one execution of the approved action and expires shortly; the retry must stay within the scope the user approved.',
 		],
 		parameters: Type.Object({
@@ -32,7 +32,10 @@ export function registerApprovalTool(pi: ExtensionAPI, ledger: ApprovalLedger): 
 			const gate = classifyToolCall({toolName: params.toolName, input: params.input, cwd: context.cwd});
 			if (gate.action === 'deny') {
 				return {
-					content: [{type: 'text', text: `Approval cannot be requested: ${gate.reason} This action is categorically blocked and user approval cannot override it. Do not ask again or pursue it another way.`}],
+					content: [{
+						type: 'text',
+						text: `Approval cannot be requested: ${gate.reason} This action is categorically blocked and user approval cannot override it. Do not ask again or pursue it another way.`,
+					}],
 					details: undefined,
 				};
 			}

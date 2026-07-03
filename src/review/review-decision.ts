@@ -12,7 +12,9 @@ export type ReviewDecision = {
 
 export type DecisionParseResult = {ok: true; value: ReviewDecision} | {ok: false; error: string};
 
-const noWorkaroundGuidance = 'Do not pursue the same outcome through workaround, indirect execution, or policy circumvention. If you believe the user wants this action, call the request_user_approval tool with the exact tool name and input, then retry the identical call after approval. Otherwise continue with a materially safer alternative, or stop.';
+const noWorkaroundGuidance = `Do not pursue the same outcome through workaround, indirect execution, or policy circumvention.
+If you believe the user wants this action, call the request_user_approval tool with the exact tool name and input, then retry the identical call after approval.
+Otherwise continue with a materially safer alternative, or stop.`;
 
 function validateOptionalFields(value: Record<string, unknown>): string | undefined {
 	if (value.saferAlternative !== undefined && typeof value.saferAlternative !== 'string') {

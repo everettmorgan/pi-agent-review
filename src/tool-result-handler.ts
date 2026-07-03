@@ -60,7 +60,11 @@ export function createToolResultHandler(pi: ExtensionAPI, state: RuntimeState) {
 			context.abort();
 			return {
 				isError: true,
-				content: [{type: 'text', text: `Agent Review blocked this tool output because it appears to contain sensitive information${labels}: ${review.value.rationale} Execution has been stopped. Do not attempt to retrieve or transmit this data.`}],
+				content: [{
+					type: 'text',
+					text: `Agent Review blocked this tool output because it appears to contain sensitive information${labels}: ${review.value.rationale}
+Execution has been stopped. Do not attempt to retrieve or transmit this data.`,
+				}],
 			};
 		}
 

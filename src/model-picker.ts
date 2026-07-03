@@ -28,7 +28,16 @@ type UiContext = {
 	model?: {api?: string};
 	modelRegistry: ModelRegistry;
 	ui: {
-		custom<T>(render: (tui: {requestRender(): void}, theme: {fg(role: string, text: string): string}, keybindings: KeybindingsLike, done: (value: T) => void) => {render(width: number): string[]; invalidate(): void; handleInput(data: string): void}): Promise<T>;
+		custom<T>(render: (
+			tui: {requestRender(): void},
+			theme: {fg(role: string, text: string): string},
+			keybindings: KeybindingsLike,
+			done: (value: T) => void,
+		) => {
+			render(width: number): string[];
+			invalidate(): void;
+			handleInput(data: string): void;
+		}): Promise<T>;
 		notify(message: string, level: 'info' | 'error'): void;
 	};
 };
